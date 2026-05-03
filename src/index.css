@@ -1,0 +1,294 @@
+@import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Kantumruy Pro', sans-serif;
+  background-color: #f0f2f5;
+  color: #1a1a1a;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Khmer text spacing */
+.khmer-text {
+  font-family: 'Kantumruy Pro', sans-serif;
+  line-height: 1.6;
+  letter-spacing: normal;
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+/* Button styles */
+.btn-khmer {
+  font-family: 'Kantumruy Pro', sans-serif;
+  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.btn-khmer:hover {
+  transform: translateY(-2px);
+}
+
+/* Sidebar styles */
+.sidebar {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+}
+
+.sidebar .nav-link {
+  font-family: 'Kantumruy Pro', sans-serif;
+  font-size: 1rem;
+  padding: 12px 20px;
+  transition: all 0.3s ease;
+}
+
+.sidebar .nav-link:hover {
+  background: rgba(255,255,255,0.1);
+  transform: translateX(5px);
+}
+
+/* Card styles */
+.dashboard-card {
+  border: none;
+  border-radius: 15px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+}
+
+/* Form styles */
+.form-control, .form-label {
+  font-family: 'Kantumruy Pro', sans-serif;
+}
+
+.form-control:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+/* Animation for loading */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Responsive font sizes for Khmer */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+  
+  h1 {
+    font-size: 1.8rem;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+  }
+}
+
+
+/* Sidebar active state */
+.sidebar .nav-link.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-left: 4px solid white;
+}
+
+/* Table hover effect */
+.table-hover tbody tr:hover {
+  background-color: #f8f9fa;
+  cursor: pointer;
+}
+
+/* Modal animation */
+.modal.show {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Card hover effect */
+.dashboard-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+/* ============================================
+   Dashboard Cards Styles
+============================================ */
+
+/* Gradient Cards */
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.bg-gradient-success {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.bg-gradient-info {
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+}
+
+.bg-gradient-warning {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.bg-gradient-danger {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+
+/* Dashboard Card */
+.dashboard-card {
+  border: none;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  position: relative;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard-card .card-icon {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  font-size: 60px;
+  opacity: 0.15;
+}
+
+.dashboard-card .card-title {
+  font-size: 14px;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.dashboard-card .card-value {
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 0;
+}
+
+.dashboard-card .card-subtitle {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-top: 5px;
+}
+
+/* Ripple effect for cards */
+.dashboard-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.1);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.dashboard-card:hover::before {
+  transform: scaleX(1);
+}
+
+/* Chart Containers */
+.chart-container {
+  position: relative;
+  padding: 10px;
+}
+
+.chart-container canvas {
+  max-height: 250px;
+  width: 100%;
+}
+
+/* Activity List */
+.activity-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.activity-item {
+  transition: all 0.2s ease;
+}
+
+.activity-item:hover {
+  background-color: #f8f9fa;
+  transform: translateX(5px);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
