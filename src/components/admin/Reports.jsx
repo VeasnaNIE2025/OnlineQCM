@@ -5,6 +5,9 @@ import reportService from '../../services/reportService';
 import examService from '../../services/examService';
 import exportService from '../../services/exportService';
 
+// ✅ Helper: safely convert any value to float then toFixed
+const toFixed = (val, digits = 1) => parseFloat(val || 0).toFixed(digits);
+
 const Reports = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -18,9 +21,7 @@ const Reports = () => {
   const [exams, setExams] = useState([]);
   const [selectedExam, setSelectedExam] = useState('');
 
-  useEffect(() => {
-    loadAllData();
-  }, []);
+  useEffect(() => { loadAllData(); }, []);
 
   useEffect(() => {
     if (selectedExam) {
@@ -50,7 +51,6 @@ const Reports = () => {
         reportService.getRecentActivities(),
         examService.getExams()
       ]);
-      
       setStatistics(statsData);
       setStudentPerformance(studentPerfData);
       setSubjectPerformance(subjectPerfData);
@@ -75,13 +75,15 @@ const Reports = () => {
     }
   };
 
-  const getScoreColor = (percentage) => {
-    if (percentage >= 70) return 'success';
-    if (percentage >= 50) return 'warning';
+  const getScoreColor = (val) => {
+    const v = parseFloat(val || 0);
+    if (v >= 70) return 'success';
+    if (v >= 50) return 'warning';
     return 'danger';
   };
 
   const formatDate = (date) => {
+    if (!date) return '';
     return new Date(date).toLocaleString('km-KH');
   };
 
@@ -89,13 +91,12 @@ const Reports = () => {
     try {
       toast.loading('កំពុងទាញយក...', { id: 'export' });
       const data = await exportService.exportExamResults(selectedExam || null);
-      const filename = selectedExam 
+      const filename = selectedExam
         ? `លទ្ធផលប្រឡង_${exams.find(e => e.id == selectedExam)?.title}_${Date.now()}.xlsx`
         : `លទ្ធផលប្រឡងទាំងអស់_${Date.now()}.xlsx`;
       exportService.downloadFile(data, filename);
       toast.success('ទាញយកបានជោគជ័យ!', { id: 'export' });
     } catch (error) {
-      console.error('Export error:', error);
       toast.error('មិនអាចទាញយកឯកសារបានទេ', { id: 'export' });
     }
   };
@@ -107,7 +108,6 @@ const Reports = () => {
       exportService.downloadFile(data, `ដំណើរការសិស្ស_${Date.now()}.xlsx`);
       toast.success('ទាញយកបានជោគជ័យ!', { id: 'export' });
     } catch (error) {
-      console.error('Export error:', error);
       toast.error('មិនអាចទាញយកឯកសារបានទេ', { id: 'export' });
     }
   };
@@ -119,7 +119,6 @@ const Reports = () => {
       exportService.downloadFile(data, `ដំណើរការមុខវិជ្ជា_${Date.now()}.xlsx`);
       toast.success('ទាញយកបានជោគជ័យ!', { id: 'export' });
     } catch (error) {
-      console.error('Export error:', error);
       toast.error('មិនអាចទាញយកឯកសារបានទេ', { id: 'export' });
     }
   };
@@ -140,27 +139,27 @@ const Reports = () => {
       <ul className="nav nav-tabs mb-4">
         <li className="nav-item">
           <button className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
-            <FaChartLine className="me-2" /> ផ្ទាំងរបាយការណ៍
+            <FaChartLine className="me-2" />ផ្ទាំងរបាយការណ៍
           </button>
         </li>
         <li className="nav-item">
           <button className={`nav-link ${activeTab === 'exam-results' ? 'active' : ''}`} onClick={() => setActiveTab('exam-results')}>
-            <FaBook className="me-2" /> លទ្ធផលប្រឡង
+            <FaBook className="me-2" />លទ្ធផលប្រឡង
           </button>
         </li>
         <li className="nav-item">
           <button className={`nav-link ${activeTab === 'student-performance' ? 'active' : ''}`} onClick={() => setActiveTab('student-performance')}>
-            <FaUsers className="me-2" /> ដំណើរការសិស្ស
+            <FaUsers className="me-2" />ដំណើរការសិស្ស
           </button>
         </li>
         <li className="nav-item">
           <button className={`nav-link ${activeTab === 'subject-performance' ? 'active' : ''}`} onClick={() => setActiveTab('subject-performance')}>
-            <FaBook className="me-2" /> ដំណើរការមុខវិជ្ជា
+            <FaBook className="me-2" />ដំណើរការមុខវិជ្ជា
           </button>
         </li>
         <li className="nav-item">
           <button className={`nav-link ${activeTab === 'top-students' ? 'active' : ''}`} onClick={() => setActiveTab('top-students')}>
-            <FaTrophy className="me-2" /> សិស្សពូកែ
+            <FaTrophy className="me-2" />សិស្សពូកែ
           </button>
         </li>
       </ul>
@@ -168,60 +167,24 @@ const Reports = () => {
       {/* Dashboard Tab */}
       {activeTab === 'dashboard' && (
         <>
-          {/* Statistics Cards */}
           <div className="row mb-4">
-            <div className="col-md-3 mb-3">
-              <div className="card bg-primary text-white">
-                <div className="card-body">
-                  <div className="d-flex justify-content-between">
-                    <div>
-                      <h6>សិស្សសរុប</h6>
-                      <h2 className="mb-0">{statistics.totalStudents || 0}</h2>
+            {[
+              { label: 'សិស្សសរុប', val: statistics.totalStudents, icon: <FaUsers size={30} />, color: 'primary' },
+              { label: 'គ្រូបង្រៀនសរុប', val: statistics.totalTeachers, icon: <FaUsers size={30} />, color: 'success' },
+              { label: 'មុខវិជ្ជា', val: statistics.totalSubjects, icon: <FaBook size={30} />, color: 'info' },
+              { label: 'សំណួរសរុប', val: statistics.totalQuestions, icon: <FaQuestionCircle size={30} />, color: 'warning' },
+            ].map((c, i) => (
+              <div className="col-md-3 mb-3" key={i}>
+                <div className={`card bg-${c.color} text-white`}>
+                  <div className="card-body">
+                    <div className="d-flex justify-content-between">
+                      <div><h6>{c.label}</h6><h2 className="mb-0">{c.val || 0}</h2></div>
+                      {c.icon}
                     </div>
-                    <FaUsers size={30} />
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="col-md-3 mb-3">
-              <div className="card bg-success text-white">
-                <div className="card-body">
-                  <div className="d-flex justify-content-between">
-                    <div>
-                      <h6>គ្រូបង្រៀនសរុប</h6>
-                      <h2 className="mb-0">{statistics.totalTeachers || 0}</h2>
-                    </div>
-                    <FaUsers size={30} />
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-3 mb-3">
-              <div className="card bg-info text-white">
-                <div className="card-body">
-                  <div className="d-flex justify-content-between">
-                    <div>
-                      <h6>មុខវិជ្ជា</h6>
-                      <h2 className="mb-0">{statistics.totalSubjects || 0}</h2>
-                    </div>
-                    <FaBook size={30} />
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-3 mb-3">
-              <div className="card bg-warning text-white">
-                <div className="card-body">
-                  <div className="d-flex justify-content-between">
-                    <div>
-                      <h6>សំណួរសរុប</h6>
-                      <h2 className="mb-0">{statistics.totalQuestions || 0}</h2>
-                    </div>
-                    <FaQuestionCircle size={30} />
-                  </div>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
 
           <div className="row">
@@ -238,10 +201,11 @@ const Reports = () => {
                     <label>ការប្រឡងបានប្រឡងរួច: <strong>{statistics.totalCompletedExams || 0}</strong></label>
                   </div>
                   <div className="mb-3">
-                    <label>ពិន្ទុមធ្យម: <strong>{statistics.averageScore || 0}%</strong></label>
+                    {/* ✅ Fix */}
+                    <label>ពិន្ទុមធ្យម: <strong>{toFixed(statistics.averageScore)}%</strong></label>
                     <div className="progress">
-                      <div className="progress-bar bg-success" style={{ width: `${statistics.averageScore || 0}%` }}>
-                        {statistics.averageScore || 0}%
+                      <div className="progress-bar bg-success" style={{ width: `${parseFloat(statistics.averageScore || 0)}%` }}>
+                        {toFixed(statistics.averageScore)}%
                       </div>
                     </div>
                   </div>
@@ -261,7 +225,8 @@ const Reports = () => {
                         <small className="text-muted">{formatDate(activity.createdAt)}</small>
                         <div>
                           {activity.type === 'exam_completed' ? (
-                            <>📝 {activity.studentName} បានប្រឡង {activity.examTitle} បាន {activity.percentage?.toFixed(1)}%</>
+                            // ✅ Fix: toFixed helper
+                            <>📝 {activity.studentName} បានប្រឡង {activity.examTitle} បាន {toFixed(activity.percentage)}%</>
                           ) : (
                             <>➕ បានបង្កើតការប្រឡង {activity.examTitle}</>
                           )}
@@ -304,10 +269,14 @@ const Reports = () => {
                         <td className="text-success">{exam.passed || 0}</td>
                         <td className="text-warning">{exam.average || 0}</td>
                         <td className="text-danger">{exam.failed || 0}</td>
-                        <td>{exam.averageScore?.toFixed(1) || 0}%</td>
-                        <td>{exam.highestScore?.toFixed(1) || 0}%</td>
+                        {/* ✅ Fix */}
+                        <td>{toFixed(exam.averageScore)}%</td>
+                        <td>{toFixed(exam.highestScore)}%</td>
                       </tr>
                     ))}
+                    {examAnalytics.length === 0 && (
+                      <tr><td colSpan="7" className="text-center py-4 text-muted">មិនទាន់មានទិន្នន័យ</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -323,16 +292,14 @@ const Reports = () => {
             <div className="d-flex justify-content-between align-items-center">
               <h6 className="mb-0"><FaBook className="me-2" />លទ្ធផលប្រឡង</h6>
               <button className="btn btn-success btn-sm" onClick={handleExportExamResults}>
-                <FaFileExcel className="me-1" /> ទាញយក Excel
+                <FaFileExcel className="me-1" />ទាញយក Excel
               </button>
             </div>
             <div className="row mt-2">
               <div className="col-md-6">
                 <select className="form-select form-select-sm" value={selectedExam} onChange={(e) => setSelectedExam(e.target.value)}>
                   <option value="">ទាំងអស់</option>
-                  {exams.map(exam => (
-                    <option key={exam.id} value={exam.id}>{exam.title}</option>
-                  ))}
+                  {exams.map(exam => <option key={exam.id} value={exam.id}>{exam.title}</option>)}
                 </select>
               </div>
             </div>
@@ -342,12 +309,8 @@ const Reports = () => {
               <table className="table table-hover mb-0">
                 <thead className="table-light">
                   <tr>
-                    <th>សិស្ស</th>
-                    <th>អ៊ីមែល</th>
-                    <th>ការប្រឡង</th>
-                    <th>ពិន្ទុ</th>
-                    <th>ភាគរយ</th>
-                    <th>ថ្ងៃប្រឡង</th>
+                    <th>សិស្ស</th><th>អ៊ីមែល</th><th>ការប្រឡង</th>
+                    <th>ពិន្ទុ</th><th>ភាគរយ</th><th>ថ្ងៃប្រឡង</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -358,13 +321,17 @@ const Reports = () => {
                       <td>{result.examTitle}</td>
                       <td>{result.totalScore} / {result.totalPoints}</td>
                       <td>
+                        {/* ✅ Fix */}
                         <span className={`badge bg-${getScoreColor(result.percentage)}`}>
-                          {result.percentage?.toFixed(1)}%
+                          {toFixed(result.percentage)}%
                         </span>
                       </td>
                       <td>{formatDate(result.submittedAt)}</td>
                     </tr>
                   ))}
+                  {examResults.length === 0 && (
+                    <tr><td colSpan="6" className="text-center py-4 text-muted">មិនទាន់មានទិន្នន័យ</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -379,7 +346,7 @@ const Reports = () => {
             <div className="d-flex justify-content-between align-items-center">
               <h6 className="mb-0"><FaUsers className="me-2" />ដំណើរការសិស្ស</h6>
               <button className="btn btn-success btn-sm" onClick={handleExportStudentPerformance}>
-                <FaFileExcel className="me-1" /> ទាញយក Excel
+                <FaFileExcel className="me-1" />ទាញយក Excel
               </button>
             </div>
           </div>
@@ -388,12 +355,8 @@ const Reports = () => {
               <table className="table table-hover mb-0">
                 <thead className="table-light">
                   <tr>
-                    <th>សិស្ស</th>
-                    <th>អ៊ីមែល</th>
-                    <th>ប្រឡងបាន</th>
-                    <th>ពិន្ទុសរុប</th>
-                    <th>ពិន្ទុសរុបដែលអាចបាន</th>
-                    <th>មធ្យម</th>
+                    <th>សិស្ស</th><th>អ៊ីមែល</th><th>ប្រឡងបាន</th>
+                    <th>ពិន្ទុសរុប</th><th>ពិន្ទុសរុបដែលអាចបាន</th><th>មធ្យម</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -405,12 +368,16 @@ const Reports = () => {
                       <td>{student.totalScore || 0}</td>
                       <td>{student.totalPossible || 0}</td>
                       <td>
+                        {/* ✅ Fix */}
                         <span className={`badge bg-${getScoreColor(student.averagePercentage)}`}>
-                          {student.averagePercentage?.toFixed(1) || 0}%
+                          {toFixed(student.averagePercentage)}%
                         </span>
                       </td>
                     </tr>
                   ))}
+                  {studentPerformance.length === 0 && (
+                    <tr><td colSpan="6" className="text-center py-4 text-muted">មិនទាន់មានទិន្នន័យ</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -425,7 +392,7 @@ const Reports = () => {
             <div className="d-flex justify-content-between align-items-center">
               <h6 className="mb-0"><FaBook className="me-2" />ដំណើរការមុខវិជ្ជា</h6>
               <button className="btn btn-success btn-sm" onClick={handleExportSubjectPerformance}>
-                <FaFileExcel className="me-1" /> ទាញយក Excel
+                <FaFileExcel className="me-1" />ទាញយក Excel
               </button>
             </div>
           </div>
@@ -434,10 +401,7 @@ const Reports = () => {
               <table className="table table-hover mb-0">
                 <thead className="table-light">
                   <tr>
-                    <th>មុខវិជ្ជា</th>
-                    <th>ការប្រឡង</th>
-                    <th>សិស្សចូលរួម</th>
-                    <th>ពិន្ទុមធ្យម</th>
+                    <th>មុខវិជ្ជា</th><th>ការប្រឡង</th><th>សិស្សចូលរួម</th><th>ពិន្ទុមធ្យម</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -447,12 +411,16 @@ const Reports = () => {
                       <td>{subject.totalExams || 0}</td>
                       <td>{subject.totalStudents || 0}</td>
                       <td>
+                        {/* ✅ Fix */}
                         <span className={`badge bg-${getScoreColor(subject.averageScore)}`}>
-                          {subject.averageScore?.toFixed(1) || 0}%
+                          {toFixed(subject.averageScore)}%
                         </span>
                       </td>
                     </tr>
                   ))}
+                  {subjectPerformance.length === 0 && (
+                    <tr><td colSpan="4" className="text-center py-4 text-muted">មិនទាន់មានទិន្នន័យ</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -471,34 +439,30 @@ const Reports = () => {
               <table className="table table-hover mb-0">
                 <thead className="table-light">
                   <tr>
-                    <th>#</th>
-                    <th>សិស្ស</th>
-                    <th>អ៊ីមែល</th>
-                    <th>ចំនួនប្រឡង</th>
-                    <th>ពិន្ទុមធ្យម</th>
-                    <th>ពិន្ទុខ្ពស់បំផុត</th>
+                    <th>#</th><th>សិស្ស</th><th>អ៊ីមែល</th>
+                    <th>ចំនួនប្រឡង</th><th>ពិន្ទុមធ្យម</th><th>ពិន្ទុខ្ពស់បំផុត</th>
                   </tr>
                 </thead>
                 <tbody>
                   {topStudents.map((student, idx) => (
                     <tr key={idx}>
-                      <td>
-                        {idx === 0 && '🥇'}
-                        {idx === 1 && '🥈'}
-                        {idx === 2 && '🥉'}
-                        {(idx > 2) && idx + 1}
-                      </td>
+                      <td>{idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}</td>
                       <td><strong>{student.fullName}</strong></td>
                       <td>{student.email}</td>
                       <td>{student.examsTaken || 0}</td>
                       <td>
+                        {/* ✅ Fix */}
                         <span className={`badge bg-${getScoreColor(student.averageScore)}`}>
-                          {student.averageScore?.toFixed(1)}%
+                          {toFixed(student.averageScore)}%
                         </span>
                       </td>
-                      <td>{student.bestScore?.toFixed(1)}%</td>
+                      {/* ✅ Fix */}
+                      <td>{toFixed(student.bestScore)}%</td>
                     </tr>
                   ))}
+                  {topStudents.length === 0 && (
+                    <tr><td colSpan="6" className="text-center py-4 text-muted">មិនទាន់មានទិន្នន័យ</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
