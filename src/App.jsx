@@ -5,6 +5,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import StudentDashboard from './pages/student/StudentDashboard';
 import ProtectedRoute from './utils/ProtectedRoute';
 import TakeExam from './pages/student/TakeExam';
@@ -25,6 +26,16 @@ function App() {
               </ProtectedRoute>
             }
           />
+          
+          <Route
+            path="/teacher/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['teacher']}>
+                <TeacherDashboard />
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="/student/dashboard"
             element={
