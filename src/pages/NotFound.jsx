@@ -62,7 +62,7 @@ const NotFound = () => {
         </h3>
         <div style={styles.infoRow}>
           <span style={styles.infoIcon}>📞</span>
-          <span style={styles.infoText}>កេលេក្រោម 0967932240</span>
+          <span style={styles.infoText}>តេលេក្រោម +8850967932240</span>
         </div>
         <div style={styles.infoRow}>
           <span style={styles.infoIcon}>✉️</span>
