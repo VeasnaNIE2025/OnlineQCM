@@ -9,6 +9,7 @@ import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import StudentDashboard from './pages/student/StudentDashboard';
 import ProtectedRoute from './utils/ProtectedRoute';
 import TakeExam from './pages/student/TakeExam';
+import NotFound from './pages/NotFound';
 
 function App() {
   return (
@@ -53,6 +54,7 @@ function App() {
             }
           />
           <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>
     </Router>
