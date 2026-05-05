@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FaEdit, FaTrash, FaPlus, FaSearch, FaQuestionCircle, FaFilter } from 'react-icons/fa';
+import React, { useState, useEffect, useCallback } from 'react';
+import { FaEdit, FaTrash, FaPlus, FaSearch, FaQuestionCircle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import questionService from '../../services/questionService';
 import subjectService from '../../services/subjectService';
@@ -26,43 +26,41 @@ const QuestionManagement = () => {
     points: 1
   });
 
+  // ✅ FIX: subjects load តែ១ដង ដាច់ពី questions
   useEffect(() => {
-    loadData();
-  }, []);
+    const loadSubjects = async () => {
+      try {
+        const subjectsData = await subjectService.getSubjects();
+        setSubjects(subjectsData.filter(s => s.isActive));
+      } catch (error) {
+        toast.error('មិនអាចផ្ទុកមុខវិជ្ជាបានទេ');
+      }
+    };
+    loadSubjects();
+  }, []); // ← run តែ១ដង
 
-  const loadData = async () => {
+  // ✅ FIX: useCallback — deps ច្បាស់លាស់
+  const loadQuestions = useCallback(async () => {
     try {
       setLoading(true);
-      const [questionsData, subjectsData] = await Promise.all([
-        questionService.getQuestions(),
-        subjectService.getSubjects()
-      ]);
-      setQuestions(questionsData);
-      setSubjects(subjectsData.filter(s => s.isActive));
-    } catch (error) {
-      toast.error('មិនអាចផ្ទុកទិន្នន័យបានទេ');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadQuestions = async () => {
-    try {
       const params = {};
       if (selectedSubject) params.subjectId = selectedSubject;
       if (selectedDifficulty) params.difficulty = selectedDifficulty;
       if (searchTerm) params.search = searchTerm;
-      
+
       const data = await questionService.getQuestions(params);
       setQuestions(data);
     } catch (error) {
       toast.error('មិនអាចផ្ទុកសំណួរបានទេ');
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [selectedSubject, selectedDifficulty, searchTerm]); // ← deps ត្រឹមត្រូវ
 
+  // ✅ FIX: include loadQuestions ក្នុង deps
   useEffect(() => {
     loadQuestions();
-  }, [selectedSubject, selectedDifficulty, searchTerm]);
+  }, [loadQuestions]); // ← run ពេល filter ផ្លាស់ប្តូរ
 
   const handleOpenModal = (question = null) => {
     if (question) {
@@ -108,9 +106,9 @@ const QuestionManagement = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!formData.subjectId || !formData.questionText || 
-        !formData.option_a || !formData.option_b || 
+
+    if (!formData.subjectId || !formData.questionText ||
+        !formData.option_a || !formData.option_b ||
         !formData.option_c || !formData.option_d) {
       toast.error('សូមបំពេញព័ត៌មានឲ្យបានពេញលេញ');
       return;
@@ -144,16 +142,8 @@ const QuestionManagement = () => {
   };
 
   const getDifficultyBadge = (difficulty) => {
-    const colors = {
-      easy: 'success',
-      medium: 'warning',
-      hard: 'danger'
-    };
-    const labels = {
-      easy: 'ស្រួល',
-      medium: 'មធ្យម',
-      hard: 'ពិបាក'
-    };
+    const colors = { easy: 'success', medium: 'warning', hard: 'danger' };
+    const labels = { easy: 'ស្រួល', medium: 'មធ្យម', hard: 'ពិបាក' };
     return <span className={`badge bg-${colors[difficulty]}`}>{labels[difficulty]}</span>;
   };
 
@@ -191,19 +181,33 @@ const QuestionManagement = () => {
             <div className="col-md-4">
               <div className="input-group">
                 <span className="input-group-text"><FaSearch /></span>
-                <input type="text" className="form-control" placeholder="ស្វែងរកសំណួរ..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="ស្វែងរកសំណួរ..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
             </div>
             <div className="col-md-4">
-              <select className="form-select" value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)}>
-                <option value="">ទាំងអស់</option>
+              <select
+                className="form-select"
+                value={selectedSubject}
+                onChange={(e) => setSelectedSubject(e.target.value)}
+              >
+                <option value="">មុខវិជ្ជាទាំងអស់</option>
                 {subjects.map(subject => (
                   <option key={subject.id} value={subject.id}>{subject.name}</option>
                 ))}
               </select>
             </div>
             <div className="col-md-4">
-              <select className="form-select" value={selectedDifficulty} onChange={(e) => setSelectedDifficulty(e.target.value)}>
+              <select
+                className="form-select"
+                value={selectedDifficulty}
+                onChange={(e) => setSelectedDifficulty(e.target.value)}
+              >
                 <option value="">កម្រិតទាំងអស់</option>
                 <option value="easy">ស្រួល</option>
                 <option value="medium">មធ្យម</option>
@@ -254,8 +258,14 @@ const QuestionManagement = () => {
                       <td>{question.points}</td>
                       <td>
                         <div className="btn-group">
-                          <button className="btn btn-sm btn-outline-primary" onClick={() => handleOpenModal(question)}><FaEdit /></button>
-                          <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(question.id, question.questionText)}><FaTrash /></button>
+                          <button
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={() => handleOpenModal(question)}
+                          ><FaEdit /></button>
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => handleDelete(question.id, question.questionText)}
+                          ><FaTrash /></button>
                         </div>
                       </td>
                     </tr>
@@ -292,22 +302,19 @@ const QuestionManagement = () => {
                     <textarea className="form-control" name="questionText" rows="2" value={formData.questionText} onChange={handleChange} required></textarea>
                   </div>
                   <div className="row">
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label">ជម្រើស A <span className="text-danger">*</span></label>
-                      <input type="text" className="form-control" name="option_a" value={formData.option_a} onChange={handleChange} required />
-                    </div>
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label">ជម្រើស B <span className="text-danger">*</span></label>
-                      <input type="text" className="form-control" name="option_b" value={formData.option_b} onChange={handleChange} required />
-                    </div>
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label">ជម្រើស C <span className="text-danger">*</span></label>
-                      <input type="text" className="form-control" name="option_c" value={formData.option_c} onChange={handleChange} required />
-                    </div>
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label">ជម្រើស D <span className="text-danger">*</span></label>
-                      <input type="text" className="form-control" name="option_d" value={formData.option_d} onChange={handleChange} required />
-                    </div>
+                    {['a', 'b', 'c', 'd'].map(opt => (
+                      <div className="col-md-6 mb-3" key={opt}>
+                        <label className="form-label">ជម្រើស {opt.toUpperCase()} <span className="text-danger">*</span></label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          name={`option_${opt}`}
+                          value={formData[`option_${opt}`]}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
+                    ))}
                   </div>
                   <div className="row">
                     <div className="col-md-4 mb-3">

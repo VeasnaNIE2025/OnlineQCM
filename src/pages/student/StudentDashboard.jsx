@@ -50,30 +50,14 @@ const useCountdown = (targetDateStr) => {
 
 // ── ExamCard ────────────────────────────────────────────────────
 const ExamCard = ({ exam, alreadyTaken, onStart }) => {
-  const [now, setNow] = useState(new Date());
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
+  // ✅ FIX: លុប useState(new Date()) ចោល — useCountdown drive re-render រួចហើយ
   const startDate = parseDBDate(exam.startDate);
   const endDate = parseDBDate(exam.endDate);
+  const now = new Date(); // គណនា fresh ក្នុង render
   const notStarted = now < startDate;
   const expired = now > endDate;
   const countdown = useCountdown(notStarted ? exam.startDate : null);
   const pad = (n) => String(n).padStart(2, '0');
-
-  // 🔍 DEBUG LOG
-  console.log(`[ExamCard] "${exam.title}"`, {
-    alreadyTaken,
-    notStarted,
-    expired,
-    now: now.toISOString(),
-    startDate: startDate?.toISOString(),
-    endDate: endDate?.toISOString(),
-    buttonShouldBeActive: !alreadyTaken && !notStarted && !expired,
-  });
 
   let statusBadge = null;
   if (alreadyTaken) {
@@ -132,10 +116,7 @@ const ExamCard = ({ exam, alreadyTaken, onStart }) => {
             ) : (
               <button
                 className="btn btn-primary w-100"
-                onClick={() => {
-                  console.log('[Button] clicked! examId:', exam.id); // 🔍 DEBUG
-                  onStart(exam);
-                }}
+                onClick={() => onStart(exam)}
               >
                 ចាប់ផ្តើមប្រឡង
               </button>
@@ -157,7 +138,18 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('exams');
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // ✅ FIX: debug logs ផ្លាស់ទៅ useEffect — run តែពេល data ផ្លាស់ប្តូរ
+  useEffect(() => {
+    if (!loading) {
+      console.log('[Dashboard] exams:', exams.map(e => ({ id: e.id, title: e.title })));
+      console.log('[Dashboard] results:', results.map(r => ({ id: r.id, examId: r.examId })));
+      console.log('[Dashboard] takenExamIds:', results.map(r => r.examId));
+    }
+  }, [exams, results, loading]);
 
   const loadData = async () => {
     try {
@@ -168,11 +160,6 @@ const StudentDashboard = () => {
       ]);
       setExams(examsData);
       setResults(resultsData);
-
-      // 🔍 DEBUG LOG
-      console.log('[Dashboard] exams:', examsData.map(e => ({ id: e.id, title: e.title })));
-      console.log('[Dashboard] results:', resultsData.map(r => ({ id: r.id, examId: r.examId })));
-      console.log('[Dashboard] takenExamIds:', resultsData.map(r => r.examId));
     } catch (error) {
       console.error('Load data error:', error);
       toast.error('មិនអាចផ្ទុកទិន្នន័យបានទេ');
@@ -181,13 +168,13 @@ const StudentDashboard = () => {
     }
   };
 
-  const takenExamIds = new Set(results.map(r => r.examId));
-
-  // 🔍 DEBUG LOG
-  console.log('[Dashboard] takenExamIds set:', [...takenExamIds]);
+  // ✅ FIX: useMemo ដើម្បីកុំ recompute រៀងរាល់ render
+  const takenExamIds = React.useMemo(
+    () => new Set(results.map(r => r.examId)),
+    [results]
+  );
 
   const handleStartExam = (exam) => {
-    console.log('[Dashboard] handleStartExam called, navigating to:', `/student/exam/${exam.id}`); // 🔍 DEBUG
     navigate(`/student/exam/${exam.id}`);
   };
 
@@ -232,12 +219,18 @@ const StudentDashboard = () => {
         <div className="col-md-12 mb-4">
           <ul className="nav nav-tabs">
             <li className="nav-item">
-              <button className={`nav-link ${activeTab === 'exams' ? 'active' : ''}`} onClick={() => setActiveTab('exams')}>
+              <button
+                className={`nav-link ${activeTab === 'exams' ? 'active' : ''}`}
+                onClick={() => setActiveTab('exams')}
+              >
                 <FaBookOpen className="me-2" />ការប្រឡងដែលអាចធ្វើបាន
               </button>
             </li>
             <li className="nav-item">
-              <button className={`nav-link ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>
+              <button
+                className={`nav-link ${activeTab === 'history' ? 'active' : ''}`}
+                onClick={() => setActiveTab('history')}
+              >
                 <FaHistory className="me-2" />ប្រវត្តិនៃការប្រឡង
               </button>
             </li>

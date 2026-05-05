@@ -1,43 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Chart as ChartJS, 
-  ArcElement, 
-  Tooltip, 
-  Legend, 
-  CategoryScale, 
-  LinearScale, 
-  BarElement, 
-  Title,
-  PointElement,
-  LineElement
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Chart as ChartJS,
+  ArcElement, Tooltip, Legend,
+  CategoryScale, LinearScale, BarElement, Title,
+  PointElement, LineElement
 } from 'chart.js';
 import { Pie, Bar, Line, Doughnut } from 'react-chartjs-2';
-import { 
-  FaUsers, 
-  FaBook, 
-  FaQuestionCircle, 
-  FaChartLine, 
-  FaTrophy, 
-  FaCalendarAlt,
-  FaUserGraduate
+import {
+  FaUsers, FaBook, FaQuestionCircle, FaChartLine,
+  FaTrophy, FaCalendarAlt
 } from 'react-icons/fa';
 import reportService from '../../services/reportService';
 import examService from '../../services/examService';
 import subjectService from '../../services/subjectService';
 
 ChartJS.register(
-  ArcElement, 
-  Tooltip, 
-  Legend, 
-  CategoryScale, 
-  LinearScale, 
-  BarElement, 
-  Title,
-  PointElement,
-  LineElement
+  ArcElement, Tooltip, Legend,
+  CategoryScale, LinearScale, BarElement, Title,
+  PointElement, LineElement
 );
 
-// ✅ Helper: safely convert any value to float then toFixed
 const toFixed = (val, digits = 1) => parseFloat(val || 0).toFixed(digits);
 
 const DashboardStats = () => {
@@ -45,7 +27,6 @@ const DashboardStats = () => {
   const [examAnalytics, setExamAnalytics] = useState([]);
   const [topStudents, setTopStudents] = useState([]);
   const [recentActivities, setRecentActivities] = useState([]);
-  const [exams, setExams] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,27 +37,19 @@ const DashboardStats = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [
-        statsData,
-        examAnalyticsData,
-        topStudentsData,
-        activitiesData,
-        examsData,
-        subjectsData
-      ] = await Promise.all([
-        reportService.getStatistics(),
-        reportService.getExamAnalytics(),
-        reportService.getTopStudents(5),
-        reportService.getRecentActivities(),
-        examService.getExams(),
-        subjectService.getSubjects()
-      ]);
-      
+      const [statsData, examAnalyticsData, topStudentsData, activitiesData, examsData, subjectsData] =
+        await Promise.all([
+          reportService.getStatistics(),
+          reportService.getExamAnalytics(),
+          reportService.getTopStudents(5),
+          reportService.getRecentActivities(),
+          examService.getExams(),
+          subjectService.getSubjects()
+        ]);
       setStatistics(statsData);
       setExamAnalytics(examAnalyticsData);
       setTopStudents(topStudentsData);
       setRecentActivities(activitiesData);
-      setExams(examsData);
       setSubjects(subjectsData);
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -88,49 +61,47 @@ const DashboardStats = () => {
   const totalPassed = examAnalytics.reduce((sum, e) => sum + (parseInt(e.passed) || 0), 0);
   const totalFailed = examAnalytics.reduce((sum, e) => sum + (parseInt(e.failed) || 0), 0);
 
-  const pieData = {
+  const pieData = useMemo(() => ({
     labels: ['ជាប់ (Pass)', 'ធ្លាក់ (Fail)'],
     datasets: [{
       data: [totalPassed, totalFailed],
       backgroundColor: ['#28a745', '#dc3545'],
-      borderWidth: 0,
-      hoverOffset: 10
+      borderWidth: 0, hoverOffset: 10
     }]
-  };
+  }), [totalPassed, totalFailed]);
 
-  // ✅ Fix: parseFloat averageScore before sort and toFixed
-  const topExams = [...examAnalytics]
-    .sort((a, b) => parseFloat(b.averageScore || 0) - parseFloat(a.averageScore || 0))
-    .slice(0, 5);
-  
-  const barData = {
+  const topExams = useMemo(() =>
+    [...examAnalytics]
+      .sort((a, b) => parseFloat(b.averageScore || 0) - parseFloat(a.averageScore || 0))
+      .slice(0, 5),
+    [examAnalytics]
+  );
+
+  const barData = useMemo(() => ({
     labels: topExams.map(e => e.title?.substring(0, 15) + (e.title?.length > 15 ? '...' : '')),
     datasets: [{
       label: 'ពិន្ទុមធ្យម (%)',
-      // ✅ Fix: parseFloat before toFixed
       data: topExams.map(e => parseFloat(toFixed(e.averageScore))),
       backgroundColor: '#4F81BD',
-      borderRadius: 8,
-      barPercentage: 0.7,
-      categoryPercentage: 0.8
+      borderRadius: 8, barPercentage: 0.7, categoryPercentage: 0.8
     }]
-  };
+  }), [topExams]);
 
   const barOptions = {
-    responsive: true,
-    maintainAspectRatio: true,
+    responsive: true, maintainAspectRatio: true,
     plugins: {
       legend: { position: 'top', labels: { font: { size: 12 } } },
       tooltip: { callbacks: { label: (ctx) => `${ctx.raw}%` } }
     },
-    scales: { 
+    scales: {
       y: { beginAtZero: true, max: 100, title: { display: true, text: 'ភាគរយ (%)', font: { size: 12 } } },
       x: { ticks: { font: { size: 11 } } }
     }
   };
 
-  const monthlyData = () => {
-    const months = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
+  // ✅ FIX: useMemo — random data គណនាតែ១ ពេល mount
+  const monthlyChartData = useMemo(() => {
+    const months = ['មករា','កុម្ភៈ','មីនា','មេសា','ឧសភា','មិថុនា','កក្កដា','សីហា','កញ្ញា','តុលា','វិច្ឆិកា','ធ្នូ'];
     const currentMonth = new Date().getMonth();
     const last6Months = [];
     for (let i = 5; i >= 0; i--) {
@@ -143,39 +114,33 @@ const DashboardStats = () => {
         data: last6Months.map(() => Math.floor(Math.random() * 20) + 5),
         borderColor: '#4F81BD',
         backgroundColor: 'rgba(79, 129, 189, 0.1)',
-        fill: true,
-        tension: 0.4,
+        fill: true, tension: 0.4,
         pointBackgroundColor: '#4F81BD',
         pointBorderColor: '#fff',
         pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6
+        pointRadius: 4, pointHoverRadius: 6
       }]
     };
-  };
+  }, []); // ✅ [] — គណនាតែ1 ពេល mount
 
-  const lineOptions = {
-    responsive: true,
-    maintainAspectRatio: true,
-    plugins: { legend: { position: 'top', labels: { font: { size: 12 } } } }
-  };
-
-  const subjectData = {
+  // ✅ FIX: useMemo — random data គណនាតែ1 ពេល subjects ផ្លាស់
+  const subjectData = useMemo(() => ({
     labels: subjects.slice(0, 5).map(s => s.name),
     datasets: [{
       data: subjects.slice(0, 5).map(() => Math.floor(Math.random() * 50) + 10),
       backgroundColor: ['#4F81BD', '#9BBB59', '#F79646', '#8064A2', '#4BACC6'],
-      borderWidth: 0,
-      hoverOffset: 10
+      borderWidth: 0, hoverOffset: 10
     }]
+  }), [subjects]); // ✅ depend លើ subjects
+
+  const lineOptions = {
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: { position: 'top', labels: { font: { size: 12 } } } }
   };
 
   const doughnutOptions = {
-    responsive: true,
-    maintainAspectRatio: true,
-    plugins: {
-      legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10 } }
-    },
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10 } } },
     cutout: '60%'
   };
 
@@ -196,50 +161,20 @@ const DashboardStats = () => {
   }
 
   const cards = [
-    { 
-      title: 'សិស្សសរុប', 
-      value: statistics.totalStudents || 0, 
-      icon: <FaUsers />, 
-      subtitle: 'ចំនួនសិស្សក្នុងប្រព័ន្ធ',
-      color: 'primary', change: '+12%', changeType: 'increase'
-    },
-    { 
-      title: 'ការប្រឡងសរុប', 
-      value: statistics.totalExams || 0, 
-      icon: <FaBook />, 
-      subtitle: 'ចំនួនការប្រឡងដែលបានបង្កើត',
-      color: 'success', change: '+5%', changeType: 'increase'
-    },
-    { 
-      title: 'សំណួរសរុប', 
-      value: statistics.totalQuestions || 0, 
-      icon: <FaQuestionCircle />, 
-      subtitle: 'ចំនួនសំណួរក្នុងប្រព័ន្ធ',
-      color: 'info', change: '+8%', changeType: 'increase'
-    },
-    { 
-      title: 'ពិន្ទុមធ្យម', 
-      // ✅ Fix: parseFloat before display
-      value: `${toFixed(statistics.averageScore)}%`, 
-      icon: <FaChartLine />, 
-      subtitle: 'ពិន្ទុមធ្យមរបស់សិស្សទាំងអស់',
-      color: 'warning', change: '-3%', changeType: 'decrease'
-    }
+    { title: 'សិស្សសរុប', value: statistics.totalStudents || 0, icon: <FaUsers />, subtitle: 'ចំនួនសិស្សក្នុងប្រព័ន្ធ', color: 'primary', change: '+12%' },
+    { title: 'ការប្រឡងសរុប', value: statistics.totalExams || 0, icon: <FaBook />, subtitle: 'ចំនួនការប្រឡងដែលបានបង្កើត', color: 'success', change: '+5%' },
+    { title: 'សំណួរសរុប', value: statistics.totalQuestions || 0, icon: <FaQuestionCircle />, subtitle: 'ចំនួនសំណួរក្នុងប្រព័ន្ធ', color: 'info', change: '+8%' },
+    { title: 'ពិន្ទុមធ្យម', value: `${toFixed(statistics.averageScore)}%`, icon: <FaChartLine />, subtitle: 'ពិន្ទុមធ្យមរបស់សិស្សទាំងអស់', color: 'warning', change: '-3%' }
   ];
 
-  const getCardStyle = (color) => {
-    const styles = {
-      primary: 'bg-gradient-primary',
-      success: 'bg-gradient-success',
-      info: 'bg-gradient-info',
-      warning: 'bg-gradient-warning'
-    };
-    return styles[color] || 'bg-primary';
-  };
+  const getCardStyle = (color) => ({
+    primary: 'bg-gradient-primary', success: 'bg-gradient-success',
+    info: 'bg-gradient-info', warning: 'bg-gradient-warning'
+  })[color] || 'bg-primary';
 
   return (
     <div className="fade-in">
-      {/* Statistics Cards */}
+      {/* Stats Cards */}
       <div className="row g-4 mb-4">
         {cards.map((card, index) => (
           <div className="col-md-3" key={index}>
@@ -250,7 +185,7 @@ const DashboardStats = () => {
                 <div className="card-value">{card.value}</div>
                 <div className="card-subtitle">{card.subtitle}</div>
                 <div className="mt-2">
-                  <small>{card.change === '-3%' ? '↓' : '↑'} {card.change}</small>
+                  <small>{card.change.startsWith('-') ? '↓' : '↑'} {card.change}</small>
                 </div>
               </div>
             </div>
@@ -306,7 +241,7 @@ const DashboardStats = () => {
               <h6 className="mb-0 fw-bold"><FaCalendarAlt className="me-2 text-info" />សកម្មភាពប្រចាំខែ</h6>
             </div>
             <div className="card-body">
-              <Line data={monthlyData()} options={lineOptions} height={250} />
+              <Line data={monthlyChartData} options={lineOptions} height={250} />
             </div>
           </div>
         </div>
@@ -333,12 +268,7 @@ const DashboardStats = () => {
               <div className="table-responsive">
                 <table className="table table-hover mb-0">
                   <thead className="table-light">
-                    <tr>
-                      <th style={{ width: '50px' }}>#</th>
-                      <th>ឈ្មោះ</th>
-                      <th>ពិន្ទុមធ្យម</th>
-                      <th>កម្រិត</th>
-                    </tr>
+                    <tr><th style={{ width: '50px' }}>#</th><th>ឈ្មោះ</th><th>ពិន្ទុមធ្យម</th><th>កម្រិត</th></tr>
                   </thead>
                   <tbody>
                     {topStudents.map((student, idx) => {
@@ -346,10 +276,9 @@ const DashboardStats = () => {
                       return (
                         <tr key={idx}>
                           <td className="text-center">
-                            {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`}
+                            {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}
                           </td>
                           <td><strong>{student.fullName}</strong></td>
-                          {/* ✅ Fix: parseFloat before toFixed */}
                           <td>{toFixed(student.averageScore)}%</td>
                           <td>
                             <span className={`badge ${score >= 80 ? 'bg-success' : score >= 60 ? 'bg-warning text-dark' : 'bg-danger'}`}>
@@ -384,21 +313,19 @@ const DashboardStats = () => {
                           {activity.type === 'exam_completed' ? '📝 បានប្រឡងរួចរាល់' : '➕ បានបង្កើតការប្រឡងថ្មី'}
                         </div>
                         <small className="text-muted d-block">
-                          {activity.type === 'exam_completed' 
+                          {activity.type === 'exam_completed'
                             ? `${activity.studentName || 'សិស្ស'} - ${activity.examTitle || 'ការប្រឡង'}`
-                            : `${activity.examTitle || 'ការប្រឡង'}`
-                          }
+                            : `${activity.examTitle || 'ការប្រឡង'}`}
                         </small>
                         {activity.percentage && (
                           <div className="mt-1">
                             <div className="progress" style={{ height: '4px' }}>
-                              <div 
-                                className={`progress-bar ${parseFloat(activity.percentage) >= 70 ? 'bg-success' : parseFloat(activity.percentage) >= 50 ? 'bg-warning' : 'bg-danger'}`} 
+                              <div
+                                className={`progress-bar ${parseFloat(activity.percentage) >= 70 ? 'bg-success' : parseFloat(activity.percentage) >= 50 ? 'bg-warning' : 'bg-danger'}`}
                                 style={{ width: `${parseFloat(activity.percentage)}%` }}
                               />
                             </div>
-                            {/* ✅ Fix: parseFloat before toFixed */}
-                            <small className={`${parseFloat(activity.percentage) >= 70 ? 'text-success' : parseFloat(activity.percentage) >= 50 ? 'text-warning' : 'text-danger'}`}>
+                            <small className={parseFloat(activity.percentage) >= 70 ? 'text-success' : parseFloat(activity.percentage) >= 50 ? 'text-warning' : 'text-danger'}>
                               {toFixed(activity.percentage)}%
                             </small>
                           </div>
