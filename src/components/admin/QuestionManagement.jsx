@@ -38,7 +38,6 @@ const QuestionManagement = () => {
     imageUrl: ''
   });
 
-  // ---------- Image upload states ----------
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState('');
 
@@ -77,7 +76,7 @@ const QuestionManagement = () => {
     loadQuestions();
   }, [loadQuestions]);
 
-  // ---------- Image upload handler ----------
+  // ---------- Image upload ----------
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -100,6 +99,11 @@ const QuestionManagement = () => {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleRemoveImage = () => {
+    setFormData(prev => ({ ...prev, imageUrl: '' }));
+    setImagePreview('');
   };
 
   // ---------- Open modal (create / edit) ----------
@@ -181,7 +185,7 @@ const QuestionManagement = () => {
     }
   };
 
-  // ---------- Delete question ----------
+  // ---------- Delete ----------
   const handleDelete = async (id, questionText) => {
     if (
       window.confirm(`តើអ្នកពិតជាចង់លុបសំណួរ "${questionText.substring(0, 50)}..." មែនទេ?`)
@@ -340,7 +344,7 @@ const QuestionManagement = () => {
         </div>
       </div>
 
-      {/* Modal Form (Create / Edit) */}
+      {/* Modal Form */}
       {showModal && (
         <div
           className="modal show d-block"
@@ -358,6 +362,7 @@ const QuestionManagement = () => {
 
               <form onSubmit={handleSubmit}>
                 <div className="modal-body">
+
                   {/* Subject */}
                   <div className="mb-3">
                     <label className="form-label">មុខវិជ្ជា <span className="text-danger">*</span></label>
@@ -409,7 +414,7 @@ const QuestionManagement = () => {
                     ))}
                   </div>
 
-                  {/* Correct answer, difficulty, points */}
+                  {/* Correct answer / difficulty / points */}
                   <div className="row">
                     <div className="col-md-4 mb-3">
                       <label className="form-label">ចម្លើយត្រឹមត្រូវ</label>
@@ -465,65 +470,68 @@ const QuestionManagement = () => {
                     />
                   </div>
 
-                  {/* Image upload & preview */}
+                  {/* Image upload */}
                   <div className="mb-3">
                     <label className="form-label">រូបភាពសម្រាប់សំណួរ (ស្រេចចិត្ត)</label>
-                    <input
-                      type="file"
-                      className="form-control"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      disabled={uploading}
-                    />
-                    {uploading && <div className="spinner-border spinner-border-sm mt-2" />}
+
+                    {/* Preview — shown after upload */}
                     {imagePreview && (
-                      <div className="mt-2">
+                      <div className="mb-2">
                         <img
                           src={imagePreview}
                           alt="Preview"
-                          style={{ maxWidth: '100%', maxHeight: '150px', objectFit: 'contain' }}
-                          onError={(e) => (e.target.style.display = 'none')}
+                          style={{
+                            maxWidth: '100%',
+                            maxHeight: '150px',
+                            objectFit: 'contain',
+                            display: 'block',
+                            borderRadius: '6px',
+                            border: '1px solid #dee2e6'
+                          }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            handleRemoveImage();
+                          }}
                         />
                         <button
                           type="button"
-                          className="btn btn-sm btn-danger mt-1"
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, imageUrl: '' }));
-                            setImagePreview('');
-                          }}
+                          className="btn btn-sm btn-outline-danger mt-2"
+                          onClick={handleRemoveImage}
                         >
                           លុបរូបភាព
                         </button>
                       </div>
                     )}
-                    {/* Optional: manual URL field (still available) */}
-                    <label className="form-label mt-2">ឬបញ្ចូល URL ដោយផ្ទាល់</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="imageUrl"
-                      placeholder="https://example.com/image.jpg"
-                      value={formData.imageUrl}
-                      onChange={handleChange}
-                    />
-                    {formData.imageUrl && !imagePreview && (
-                      <div className="mt-2 text-center">
-                        <img
-                          src={formData.imageUrl}
-                          alt="Preview"
-                          style={{ maxWidth: '100%', maxHeight: '150px', objectFit: 'contain' }}
-                          onError={(e) => (e.target.style.display = 'none')}
+
+                    {/* File input — hidden once preview exists */}
+                    {!imagePreview && (
+                      <>
+                        <input
+                          type="file"
+                          className="form-control"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          disabled={uploading}
                         />
-                      </div>
+                        {uploading && (
+                          <div className="d-flex align-items-center gap-2 mt-2">
+                            <div className="spinner-border spinner-border-sm text-primary" role="status">
+                              <span className="visually-hidden">Loading...</span>
+                            </div>
+                            <small className="text-muted">កំពុងផ្ទុករូបភាព...</small>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
+
                 </div>
 
                 <div className="modal-footer">
                   <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>
                     បោះបង់
                   </button>
-                  <button type="submit" className="btn btn-primary">
+                  <button type="submit" className="btn btn-primary" disabled={uploading}>
                     {editingQuestion ? 'រក្សាទុក' : 'បង្កើត'}
                   </button>
                 </div>
