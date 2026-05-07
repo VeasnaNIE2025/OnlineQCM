@@ -1,3 +1,4 @@
+// frontend/src/pages/student/TakeExam.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,13 +16,16 @@ const TakeExam = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  // Refs to avoid race conditions when auto‑submitting
   const submittingRef = useRef(false);
   const answersRef = useRef({});
 
+  // Keep ref in sync with current answers
   useEffect(() => {
     answersRef.current = answers;
   }, [answers]);
 
+  // Load exam data when component mounts
   useEffect(() => {
     loadExam();
   }, [id]);
@@ -31,9 +35,11 @@ const TakeExam = () => {
       setLoading(true);
       const data = await studentExamService.getExamDetails(id);
       setExam(data);
-      setTimeLeft(data.duration * 60);
+      setTimeLeft(data.duration * 60); // duration in minutes → seconds
       const initial = {};
-      data.Questions?.forEach((_, idx) => { initial[idx] = ''; });
+      data.Questions?.forEach((_, idx) => {
+        initial[idx] = '';
+      });
       setAnswers(initial);
       answersRef.current = initial;
     } catch (error) {
@@ -45,6 +51,7 @@ const TakeExam = () => {
     }
   };
 
+  // Timer countdown (auto‑submit when time runs out)
   useEffect(() => {
     if (!exam) return;
     const timer = setInterval(() => {
@@ -123,7 +130,7 @@ const TakeExam = () => {
 
   return (
     <div className="container py-4 fade-in">
-      {/* Header */}
+      {/* Header with timer */}
       <div className="card shadow-sm mb-4">
         <div className={`card-header text-white ${timeLeft <= 60 ? 'bg-danger' : timeLeft <= 300 ? 'bg-warning' : 'bg-primary'}`}>
           <div className="d-flex justify-content-between">
@@ -139,7 +146,7 @@ const TakeExam = () => {
         </div>
       </div>
 
-      {/* Question Navigation */}
+      {/* Question navigation pills */}
       <div className="card shadow-sm mb-4">
         <div className="card-body">
           <div className="d-flex flex-wrap gap-2 justify-content-center">
@@ -157,7 +164,7 @@ const TakeExam = () => {
         </div>
       </div>
 
-      {/* Question Card */}
+      {/* Current question card */}
       <div className="card shadow-sm mb-4">
         <div className="card-header bg-light">
           <div className="d-flex justify-content-between">
@@ -167,19 +174,21 @@ const TakeExam = () => {
         </div>
         <div className="card-body">
           <p className="mb-4 fs-5">{currentQ?.questionText}</p>
-          
-          {/* ✅ បង្ហាញរូបភាព (ប្រសិនបើមាន) */}
+
+          {/* ✅ Display image if provided */}
           {currentQ?.imageUrl && (
             <div className="text-center my-3">
               <img
                 src={currentQ.imageUrl}
                 alt="រូបភាពសម្រាប់សំណួរ"
+                className="img-fluid rounded"
                 style={{ maxWidth: '100%', maxHeight: '250px', objectFit: 'contain' }}
                 onError={(e) => { e.target.style.display = 'none'; }}
               />
             </div>
           )}
-          
+
+          {/* Answer options */}
           {['a', 'b', 'c', 'd'].map(opt => (
             <div className="form-check mb-3" key={opt}>
               <input
@@ -199,7 +208,7 @@ const TakeExam = () => {
         </div>
       </div>
 
-      {/* Navigation Buttons */}
+      {/* Navigation buttons */}
       <div className="d-flex justify-content-between mb-5">
         <button
           className="btn btn-secondary btn-lg"

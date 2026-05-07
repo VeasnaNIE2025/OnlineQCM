@@ -1,3 +1,4 @@
+// frontend/src/components/admin/QuestionManagement.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   FaEdit,
@@ -9,6 +10,7 @@ import {
 import toast from 'react-hot-toast';
 import questionService from '../../services/questionService';
 import subjectService from '../../services/subjectService';
+import api from '../../services/api';
 
 const QuestionManagement = () => {
   const [questions, setQuestions] = useState([]);
@@ -36,7 +38,11 @@ const QuestionManagement = () => {
     imageUrl: ''
   });
 
-  // Load Subjects
+  // ---------- Image upload states ----------
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState('');
+
+  // ---------- Load subjects ----------
   useEffect(() => {
     const loadSubjects = async () => {
       try {
@@ -46,23 +52,19 @@ const QuestionManagement = () => {
         toast.error('មិនអាចផ្ទុកមុខវិជ្ជាបានទេ');
       }
     };
-
     loadSubjects();
   }, []);
 
-  // Load Questions
+  // ---------- Load questions with filters ----------
   const loadQuestions = useCallback(async () => {
     try {
       setLoading(true);
-
       const params = {};
-
       if (selectedSubject) params.subjectId = selectedSubject;
       if (selectedDifficulty) params.difficulty = selectedDifficulty;
       if (searchTerm) params.search = searchTerm;
 
       const data = await questionService.getQuestions(params);
-
       setQuestions(data);
     } catch (error) {
       toast.error('មិនអាចផ្ទុកសំណួរបានទេ');
@@ -75,11 +77,35 @@ const QuestionManagement = () => {
     loadQuestions();
   }, [loadQuestions]);
 
-  // Open Modal
+  // ---------- Image upload handler ----------
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formDataUpload = new FormData();
+    formDataUpload.append('image', file);
+
+    setUploading(true);
+    try {
+      const response = await api.post('/admin/upload-image', formDataUpload, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      const uploadedUrl = response.data.imageUrl;
+      setFormData(prev => ({ ...prev, imageUrl: uploadedUrl }));
+      setImagePreview(uploadedUrl);
+      toast.success('រូបភាពបានផ្ទុកឡើងដោយជោគជ័យ');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('មិនអាចផ្ទុករូបភាពបានទេ');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // ---------- Open modal (create / edit) ----------
   const handleOpenModal = (question = null) => {
     if (question) {
       setEditingQuestion(question);
-
       setFormData({
         subjectId: question.subjectId || '',
         questionText: question.questionText || '',
@@ -93,9 +119,9 @@ const QuestionManagement = () => {
         points: question.points || 1,
         imageUrl: question.imageUrl || ''
       });
+      setImagePreview(question.imageUrl || '');
     } else {
       setEditingQuestion(null);
-
       setFormData({
         subjectId: subjects[0]?.id || '',
         questionText: '',
@@ -109,26 +135,22 @@ const QuestionManagement = () => {
         points: 1,
         imageUrl: ''
       });
+      setImagePreview('');
     }
-
     setShowModal(true);
   };
 
-  // Close Modal
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingQuestion(null);
+    setImagePreview('');
   };
 
-  // Handle Input Change
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Submit Form
+  // ---------- Submit (create / update) ----------
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -146,91 +168,51 @@ const QuestionManagement = () => {
 
     try {
       if (editingQuestion) {
-        await questionService.updateQuestion(
-          editingQuestion.id,
-          formData
-        );
-
+        await questionService.updateQuestion(editingQuestion.id, formData);
         toast.success('កែប្រែសំណួរបានជោគជ័យ');
       } else {
         await questionService.createQuestion(formData);
-
         toast.success('បង្កើតសំណួរថ្មីបានជោគជ័យ');
       }
-
       loadQuestions();
       handleCloseModal();
     } catch (error) {
-      toast.error(
-        error.response?.data?.message ||
-          'មានបញ្ហា សូមព្យាយាមម្តងទៀត'
-      );
+      toast.error(error.response?.data?.message || 'មានបញ្ហា សូមព្យាយាមម្តងទៀត');
     }
   };
 
-  // Delete Question
+  // ---------- Delete question ----------
   const handleDelete = async (id, questionText) => {
-    const confirmDelete = window.confirm(
-      `តើអ្នកពិតជាចង់លុបសំណួរ "${questionText.substring(
-        0,
-        50
-      )}..." មែនទេ?`
-    );
-
-    if (!confirmDelete) return;
-
-    try {
-      await questionService.deleteQuestion(id);
-
-      toast.success('លុបសំណួរបានជោគជ័យ');
-
-      loadQuestions();
-    } catch (error) {
-      toast.error('មិនអាចលុបសំណួរបានទេ');
+    if (
+      window.confirm(`តើអ្នកពិតជាចង់លុបសំណួរ "${questionText.substring(0, 50)}..." មែនទេ?`)
+    ) {
+      try {
+        await questionService.deleteQuestion(id);
+        toast.success('លុបសំណួរបានជោគជ័យ');
+        loadQuestions();
+      } catch (error) {
+        toast.error('មិនអាចលុបសំណួរបានទេ');
+      }
     }
   };
 
-  // Difficulty Badge
+  // ---------- Helper UI ----------
   const getDifficultyBadge = (difficulty) => {
-    const colors = {
-      easy: 'success',
-      medium: 'warning',
-      hard: 'danger'
-    };
-
-    const labels = {
-      easy: 'ស្រួល',
-      medium: 'មធ្យម',
-      hard: 'ពិបាក'
-    };
-
-    return (
-      <span className={`badge bg-${colors[difficulty]}`}>
-        {labels[difficulty]}
-      </span>
-    );
+    const colors = { easy: 'success', medium: 'warning', hard: 'danger' };
+    const labels = { easy: 'ស្រួល', medium: 'មធ្យម', hard: 'ពិបាក' };
+    return <span className={`badge bg-${colors[difficulty]}`}>{labels[difficulty]}</span>;
   };
 
-  // Get Subject Name
   const getSubjectName = (subjectId) => {
-    const subject = subjects.find(
-      (s) => s.id === subjectId
-    );
-
+    const subject = subjects.find((s) => s.id === subjectId);
     return subject ? subject.name : 'មិនស្គាល់';
   };
 
-  // Loading
   if (loading) {
     return (
       <div className="text-center py-5">
-        <div
-          className="spinner-border text-primary"
-          role="status"
-        >
-          <span className="visually-hidden">
-            Loading...
-          </span>
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
         </div>
       </div>
     );
@@ -241,21 +223,11 @@ const QuestionManagement = () => {
       {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h3 className="mb-1">
-            ❓ គ្រប់គ្រងសំណួរ
-          </h3>
-
-          <p className="text-muted">
-            បន្ថែម, កែប្រែ, និងគ្រប់គ្រងសំណួរប្រឡង QCM
-          </p>
+          <h3 className="mb-1">❓ គ្រប់គ្រងសំណួរ</h3>
+          <p className="text-muted">បន្ថែម, កែប្រែ, និងគ្រប់គ្រងសំណួរប្រឡង QCM</p>
         </div>
-
-        <button
-          className="btn btn-primary"
-          onClick={() => handleOpenModal()}
-        >
-          <FaPlus className="me-2" />
-          បន្ថែមសំណួរថ្មី
+        <button className="btn btn-primary" onClick={() => handleOpenModal()}>
+          <FaPlus className="me-2" /> បន្ថែមសំណួរថ្មី
         </button>
       </div>
 
@@ -263,62 +235,39 @@ const QuestionManagement = () => {
       <div className="card shadow-sm mb-4">
         <div className="card-body">
           <div className="row g-3">
-            {/* Search */}
             <div className="col-md-4">
               <div className="input-group">
-                <span className="input-group-text">
-                  <FaSearch />
-                </span>
-
+                <span className="input-group-text"><FaSearch /></span>
                 <input
                   type="text"
                   className="form-control"
                   placeholder="ស្វែងរកសំណួរ..."
                   value={searchTerm}
-                  onChange={(e) =>
-                    setSearchTerm(e.target.value)
-                  }
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
-
-            {/* Subject Filter */}
             <div className="col-md-4">
               <select
                 className="form-select"
                 value={selectedSubject}
-                onChange={(e) =>
-                  setSelectedSubject(e.target.value)
-                }
+                onChange={(e) => setSelectedSubject(e.target.value)}
               >
-                <option value="">
-                  មុខវិជ្ជាទាំងអស់
-                </option>
-
+                <option value="">មុខវិជ្ជាទាំងអស់</option>
                 {subjects.map((subject) => (
-                  <option
-                    key={subject.id}
-                    value={subject.id}
-                  >
+                  <option key={subject.id} value={subject.id}>
                     {subject.name}
                   </option>
                 ))}
               </select>
             </div>
-
-            {/* Difficulty Filter */}
             <div className="col-md-4">
               <select
                 className="form-select"
                 value={selectedDifficulty}
-                onChange={(e) =>
-                  setSelectedDifficulty(e.target.value)
-                }
+                onChange={(e) => setSelectedDifficulty(e.target.value)}
               >
-                <option value="">
-                  កម្រិតទាំងអស់
-                </option>
-
+                <option value="">កម្រិតទាំងអស់</option>
                 <option value="easy">ស្រួល</option>
                 <option value="medium">មធ្យម</option>
                 <option value="hard">ពិបាក</option>
@@ -340,24 +289,14 @@ const QuestionManagement = () => {
                   <th>មុខវិជ្ជា</th>
                   <th>កម្រិត</th>
                   <th>ពិន្ទុ</th>
-                  <th style={{ width: '100px' }}>
-                    សកម្មភាព
-                  </th>
+                  <th style={{ width: '100px' }}>សកម្មភាព</th>
                 </tr>
               </thead>
-
               <tbody>
                 {questions.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan="6"
-                      className="text-center py-5"
-                    >
-                      <FaQuestionCircle
-                        size={50}
-                        className="text-muted mb-2"
-                      />
-
+                    <td colSpan="6" className="text-center py-5">
+                      <FaQuestionCircle size={50} className="text-muted mb-2" />
                       <p>មិនមានទិន្នន័យសំណួរ</p>
                     </td>
                   </tr>
@@ -365,54 +304,28 @@ const QuestionManagement = () => {
                   questions.map((question, index) => (
                     <tr key={question.id}>
                       <td>{index + 1}</td>
-
                       <td>
-                        <div
-                          className="text-truncate"
-                          style={{ maxWidth: '300px' }}
-                        >
+                        <div className="text-truncate" style={{ maxWidth: '300px' }}>
                           {question.questionText}
                         </div>
-
                         <small className="text-muted">
-                          ចម្លើយត្រឹមត្រូវ:{' '}
-                          {question.correctAnswer.toUpperCase()}
+                          ចម្លើយត្រឹមត្រូវ: {question.correctAnswer.toUpperCase()}
                         </small>
                       </td>
-
-                      <td>
-                        {getSubjectName(
-                          question.subjectId
-                        )}
-                      </td>
-
-                      <td>
-                        {getDifficultyBadge(
-                          question.difficulty
-                        )}
-                      </td>
-
+                      <td>{getSubjectName(question.subjectId)}</td>
+                      <td>{getDifficultyBadge(question.difficulty)}</td>
                       <td>{question.points}</td>
-
                       <td>
                         <div className="btn-group">
                           <button
                             className="btn btn-sm btn-outline-primary"
-                            onClick={() =>
-                              handleOpenModal(question)
-                            }
+                            onClick={() => handleOpenModal(question)}
                           >
                             <FaEdit />
                           </button>
-
                           <button
                             className="btn btn-sm btn-outline-danger"
-                            onClick={() =>
-                              handleDelete(
-                                question.id,
-                                question.questionText
-                              )
-                            }
+                            onClick={() => handleDelete(question.id, question.questionText)}
                           >
                             <FaTrash />
                           </button>
@@ -427,45 +340,27 @@ const QuestionManagement = () => {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Modal Form (Create / Edit) */}
       {showModal && (
         <div
           className="modal show d-block"
           tabIndex="-1"
-          style={{
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            overflowY: 'auto'
-          }}
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)', overflowY: 'auto' }}
         >
           <div className="modal-dialog modal-lg modal-dialog-centered">
             <div className="modal-content">
-              {/* Header */}
               <div className="modal-header">
                 <h5 className="modal-title">
-                  {editingQuestion
-                    ? '✏️ កែប្រែសំណួរ'
-                    : '➕ បន្ថែមសំណួរថ្មី'}
+                  {editingQuestion ? '✏️ កែប្រែសំណួរ' : '➕ បន្ថែមសំណួរថ្មី'}
                 </h5>
-
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={handleCloseModal}
-                />
+                <button type="button" className="btn-close" onClick={handleCloseModal} />
               </div>
 
-              {/* Form */}
               <form onSubmit={handleSubmit}>
                 <div className="modal-body">
                   {/* Subject */}
                   <div className="mb-3">
-                    <label className="form-label">
-                      មុខវិជ្ជា{' '}
-                      <span className="text-danger">
-                        *
-                      </span>
-                    </label>
-
+                    <label className="form-label">មុខវិជ្ជា <span className="text-danger">*</span></label>
                     <select
                       className="form-select"
                       name="subjectId"
@@ -473,30 +368,18 @@ const QuestionManagement = () => {
                       onChange={handleChange}
                       required
                     >
-                      <option value="">
-                        ជ្រើសរើសមុខវិជ្ជា
-                      </option>
-
+                      <option value="">ជ្រើសរើសមុខវិជ្ជា</option>
                       {subjects.map((subject) => (
-                        <option
-                          key={subject.id}
-                          value={subject.id}
-                        >
+                        <option key={subject.id} value={subject.id}>
                           {subject.name}
                         </option>
                       ))}
                     </select>
                   </div>
 
-                  {/* Question */}
+                  {/* Question text */}
                   <div className="mb-3">
-                    <label className="form-label">
-                      សំណួរ{' '}
-                      <span className="text-danger">
-                        *
-                      </span>
-                    </label>
-
+                    <label className="form-label">សំណួរ <span className="text-danger">*</span></label>
                     <textarea
                       className="form-control"
                       name="questionText"
@@ -510,25 +393,15 @@ const QuestionManagement = () => {
                   {/* Options */}
                   <div className="row">
                     {['a', 'b', 'c', 'd'].map((opt) => (
-                      <div
-                        className="col-md-6 mb-3"
-                        key={opt}
-                      >
+                      <div className="col-md-6 mb-3" key={opt}>
                         <label className="form-label">
-                          ជម្រើស{' '}
-                          {opt.toUpperCase()}{' '}
-                          <span className="text-danger">
-                            *
-                          </span>
+                          ជម្រើស {opt.toUpperCase()} <span className="text-danger">*</span>
                         </label>
-
                         <input
                           type="text"
                           className="form-control"
                           name={`option_${opt}`}
-                          value={
-                            formData[`option_${opt}`]
-                          }
+                          value={formData[`option_${opt}`]}
                           onChange={handleChange}
                           required
                         />
@@ -536,14 +409,10 @@ const QuestionManagement = () => {
                     ))}
                   </div>
 
-                  {/* Other Settings */}
+                  {/* Correct answer, difficulty, points */}
                   <div className="row">
-                    {/* Correct Answer */}
                     <div className="col-md-4 mb-3">
-                      <label className="form-label">
-                        ចម្លើយត្រឹមត្រូវ
-                      </label>
-
+                      <label className="form-label">ចម្លើយត្រឹមត្រូវ</label>
                       <select
                         className="form-select"
                         name="correctAnswer"
@@ -556,37 +425,21 @@ const QuestionManagement = () => {
                         <option value="d">D</option>
                       </select>
                     </div>
-
-                    {/* Difficulty */}
                     <div className="col-md-4 mb-3">
-                      <label className="form-label">
-                        កម្រិត
-                      </label>
-
+                      <label className="form-label">កម្រិត</label>
                       <select
                         className="form-select"
                         name="difficulty"
                         value={formData.difficulty}
                         onChange={handleChange}
                       >
-                        <option value="easy">
-                          ស្រួល
-                        </option>
-                        <option value="medium">
-                          មធ្យម
-                        </option>
-                        <option value="hard">
-                          ពិបាក
-                        </option>
+                        <option value="easy">ស្រួល</option>
+                        <option value="medium">មធ្យម</option>
+                        <option value="hard">ពិបាក</option>
                       </select>
                     </div>
-
-                    {/* Points */}
                     <div className="col-md-4 mb-3">
-                      <label className="form-label">
-                        ពិន្ទុ
-                      </label>
-
+                      <label className="form-label">ពិន្ទុ</label>
                       <input
                         type="number"
                         className="form-control"
@@ -601,10 +454,7 @@ const QuestionManagement = () => {
 
                   {/* Explanation */}
                   <div className="mb-3">
-                    <label className="form-label">
-                      ការពន្យល់
-                    </label>
-
+                    <label className="form-label">ការពន្យល់</label>
                     <textarea
                       className="form-control"
                       name="explanation"
@@ -615,12 +465,39 @@ const QuestionManagement = () => {
                     />
                   </div>
 
-                  {/* Image URL */}
+                  {/* Image upload & preview */}
                   <div className="mb-3">
-                    <label className="form-label">
-                      URL រូបភាព (ស្រេចចិត្ត)
-                    </label>
-
+                    <label className="form-label">រូបភាពសម្រាប់សំណួរ (ស្រេចចិត្ត)</label>
+                    <input
+                      type="file"
+                      className="form-control"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploading}
+                    />
+                    {uploading && <div className="spinner-border spinner-border-sm mt-2" />}
+                    {imagePreview && (
+                      <div className="mt-2">
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          style={{ maxWidth: '100%', maxHeight: '150px', objectFit: 'contain' }}
+                          onError={(e) => (e.target.style.display = 'none')}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-danger mt-1"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, imageUrl: '' }));
+                            setImagePreview('');
+                          }}
+                        >
+                          លុបរូបភាព
+                        </button>
+                      </div>
+                    )}
+                    {/* Optional: manual URL field (still available) */}
+                    <label className="form-label mt-2">ឬបញ្ចូល URL ដោយផ្ទាល់</label>
                     <input
                       type="text"
                       className="form-control"
@@ -629,44 +506,25 @@ const QuestionManagement = () => {
                       value={formData.imageUrl}
                       onChange={handleChange}
                     />
-
-                    {formData.imageUrl && (
+                    {formData.imageUrl && !imagePreview && (
                       <div className="mt-2 text-center">
                         <img
                           src={formData.imageUrl}
                           alt="Preview"
-                          style={{
-                            maxWidth: '100%',
-                            maxHeight: '150px',
-                            objectFit: 'contain'
-                          }}
-                          onError={(e) => {
-                            e.target.style.display =
-                              'none';
-                          }}
+                          style={{ maxWidth: '100%', maxHeight: '150px', objectFit: 'contain' }}
+                          onError={(e) => (e.target.style.display = 'none')}
                         />
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Footer */}
                 <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={handleCloseModal}
-                  >
+                  <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>
                     បោះបង់
                   </button>
-
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                  >
-                    {editingQuestion
-                      ? 'រក្សាទុក'
-                      : 'បង្កើត'}
+                  <button type="submit" className="btn btn-primary">
+                    {editingQuestion ? 'រក្សាទុក' : 'បង្កើត'}
                   </button>
                 </div>
               </form>
