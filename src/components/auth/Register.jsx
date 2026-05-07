@@ -1,3 +1,407 @@
+// import React, { useState, useEffect } from 'react';
+// import { useNavigate, Link } from 'react-router-dom';
+// import { useAuth } from '../../contexts/AuthContext';
+// import toast from 'react-hot-toast';
+// import api from '../../services/api';
+
+// const styles = `
+//   @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Khmer:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap');
+
+//   .reg-page {
+//     min-height: 100vh;
+//     display: flex;
+//     align-items: center;
+//     justify-content: center;
+//     background: #f5f3ee;
+//     padding: 2rem 1rem;
+//   }
+
+//   .reg-card {
+//     display: flex;
+//     width: 720px;
+//     max-width: 100%;
+//     border-radius: 16px;
+//     overflow: hidden;
+//     box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+//   }
+
+//   .reg-panel {
+//     width: 200px;
+//     flex-shrink: 0;
+//     background: #0a4a38;
+//     display: flex;
+//     flex-direction: column;
+//     align-items: center;
+//     justify-content: center;
+//     padding: 2.5rem 1.5rem;
+//     position: relative;
+//     overflow: hidden;
+//   }
+
+//   .reg-panel-deco {
+//     position: absolute;
+//     inset: 0;
+//     width: 100%;
+//     height: 100%;
+//     opacity: 0.1;
+//     pointer-events: none;
+//   }
+
+//   .reg-panel-inner {
+//     position: relative;
+//     z-index: 1;
+//     text-align: center;
+//   }
+
+//   .reg-lotus {
+//     width: 72px;
+//     height: 72px;
+//     margin: 0 auto 20px;
+//   }
+
+//   .reg-panel-title {
+//     font-family: 'Noto Serif Khmer', serif;
+//     color: #e8d5a3;
+//     font-size: 18px;
+//     font-weight: 600;
+//     line-height: 1.6;
+//     margin: 0 0 12px;
+//   }
+
+//   .reg-panel-sub {
+//     color: #9fcfb8;
+//     font-size: 12px;
+//     font-family: 'DM Sans', sans-serif;
+//     line-height: 1.7;
+//     margin: 0;
+//   }
+
+//   .reg-form-area {
+//     flex: 1;
+//     background: #fff;
+//     padding: 2.5rem 2rem;
+//     overflow-y: auto;
+//     font-family: 'DM Sans', sans-serif;
+//   }
+
+//   .reg-heading {
+//     font-family: 'Noto Serif Khmer', serif;
+//     font-size: 22px;
+//     font-weight: 600;
+//     color: #1a1a1a;
+//     margin: 0 0 4px;
+//   }
+
+//   .reg-sub {
+//     font-size: 13px;
+//     color: #888;
+//     margin: 0 0 1.75rem;
+//   }
+
+//   .field-row {
+//     display: grid;
+//     grid-template-columns: 1fr 1fr;
+//     gap: 14px;
+//   }
+
+//   .field {
+//     margin-bottom: 16px;
+//   }
+
+//   .field label {
+//     display: block;
+//     font-size: 12px;
+//     font-weight: 500;
+//     color: #555;
+//     margin-bottom: 6px;
+//     letter-spacing: 0.02em;
+//   }
+
+//   .field input,
+//   .field select {
+//     width: 100%;
+//     box-sizing: border-box;
+//     height: 40px;
+//     padding: 0 12px;
+//     border: 1px solid #ddd;
+//     border-radius: 7px;
+//     font-size: 13px;
+//     font-family: 'DM Sans', sans-serif;
+//     color: #1a1a1a;
+//     background: #fafaf9;
+//     outline: none;
+//     transition: border-color 0.2s, box-shadow 0.2s;
+//     -webkit-appearance: none;
+//   }
+
+//   .field input:focus,
+//   .field select:focus {
+//     border-color: #1D9E75;
+//     box-shadow: 0 0 0 3px rgba(29,158,117,0.12);
+//     background: #fff;
+//   }
+
+//   .field input::placeholder {
+//     color: #bbb;
+//     font-size: 12px;
+//   }
+
+//   .loading-text {
+//     font-size: 11px;
+//     color: #aaa;
+//     margin-top: 4px;
+//   }
+
+//   .btn-submit {
+//     width: 100%;
+//     height: 44px;
+//     background: #0a4a38;
+//     color: #e8d5a3;
+//     border: none;
+//     border-radius: 8px;
+//     font-size: 15px;
+//     font-family: 'Noto Serif Khmer', serif;
+//     font-weight: 600;
+//     cursor: pointer;
+//     letter-spacing: 0.01em;
+//     transition: background 0.2s, transform 0.1s;
+//     margin-top: 6px;
+//     display: flex;
+//     align-items: center;
+//     justify-content: center;
+//     gap: 8px;
+//   }
+
+//   .btn-submit:hover:not(:disabled) { background: #0d5c46; }
+//   .btn-submit:active:not(:disabled) { transform: scale(0.99); }
+//   .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+//   .login-link {
+//     text-align: center;
+//     font-size: 13px;
+//     color: #888;
+//     margin-top: 16px;
+//   }
+
+//   .login-link a {
+//     color: #1D9E75;
+//     text-decoration: none;
+//     font-weight: 500;
+//   }
+
+//   .login-link a:hover { text-decoration: underline; }
+
+//   @media (max-width: 600px) {
+//     .reg-panel { display: none; }
+//     .field-row { grid-template-columns: 1fr; }
+//     .reg-form-area { padding: 2rem 1.25rem; }
+//   }
+// `;
+
+// const Register = () => {
+//   const [formData, setFormData] = useState({
+//     username: '',
+//     email: '',
+//     password: '',
+//     confirmPassword: '',
+//     fullName: '',
+//     role: 'student',
+//     classId: ''
+//   });
+//   const [classes, setClasses] = useState([]);
+//   const [loadingClasses, setLoadingClasses] = useState(false);
+//   const [loading, setLoading] = useState(false);
+//   const { register } = useAuth();
+//   const navigate = useNavigate();
+
+//   useEffect(() => {
+//     const fetchClasses = async () => {
+//       setLoadingClasses(true);
+//       try {
+//         const res = await api.get('/classes');
+//         setClasses(res.data);
+//       } catch (err) {
+//         console.error('Failed to load classes', err);
+//         toast.error('មិនអាចផ្ទុកបញ្ជីថ្នាក់បានទេ');
+//       } finally {
+//         setLoadingClasses(false);
+//       }
+//     };
+//     fetchClasses();
+//   }, []);
+
+//   const handleChange = (e) => {
+//     setFormData({ ...formData, [e.target.name]: e.target.value });
+//   };
+
+//   const handleSubmit = async (e) => {
+//     e.preventDefault();
+
+//     if (formData.password !== formData.confirmPassword) {
+//       toast.error('ពាក្យសម្ងាត់មិនត្រូវគ្នា');
+//       return;
+//     }
+
+//     if (!formData.classId) {
+//       toast.error('សូមជ្រើសរើសថ្នាក់រៀន');
+//       return;
+//     }
+
+//     setLoading(true);
+//     try {
+//       const { confirmPassword, ...userData } = formData;
+//       await register(userData);
+//       toast.success('ចុះឈ្មោះបានជោគជ័យ! សូមចូលប្រព័ន្ធ');
+//       navigate('/login');
+//     } catch (error) {
+//       toast.error(error.response?.data?.message || 'បរាជ័យក្នុងការចុះឈ្មោះ');
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   return (
+//     <>
+//       <style>{styles}</style>
+//       <div className="reg-page">
+//         <div className="reg-card">
+
+//           {/* ── Decorative left panel ── */}
+//           <div className="reg-panel">
+//             <svg className="reg-panel-deco" viewBox="0 0 200 600" xmlns="http://www.w3.org/2000/svg">
+//               {[100, 300, 500].map(cy => (
+//                 <g key={cy}>
+//                   <circle cx="100" cy={cy} r="80" fill="none" stroke="#e8d5a3" strokeWidth="1"/>
+//                   <circle cx="100" cy={cy} r="55" fill="none" stroke="#e8d5a3" strokeWidth="0.5"/>
+//                   <circle cx="100" cy={cy} r="30" fill="none" stroke="#e8d5a3" strokeWidth="0.5"/>
+//                 </g>
+//               ))}
+//               <line x1="100" y1="0" x2="100" y2="600" stroke="#e8d5a3" strokeWidth="0.5"/>
+//               {[100, 300, 500].map(cy => (
+//                 <g key={`h${cy}`}>
+//                   <line x1="0" y1={cy} x2="200" y2={cy} stroke="#e8d5a3" strokeWidth="0.5"/>
+//                   <line x1="43" y1={cy-43} x2="157" y2={cy+43} stroke="#e8d5a3" strokeWidth="0.4"/>
+//                   <line x1="43" y1={cy+43} x2="157" y2={cy-43} stroke="#e8d5a3" strokeWidth="0.4"/>
+//                 </g>
+//               ))}
+//             </svg>
+//             <div className="reg-panel-inner">
+//               <svg className="reg-lotus" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+//                 <ellipse cx="36" cy="48" rx="8" ry="14" fill="#1D9E75" opacity="0.8"/>
+//                 <ellipse cx="20" cy="44" rx="7" ry="12" transform="rotate(-25 20 44)" fill="#1D9E75" opacity="0.65"/>
+//                 <ellipse cx="52" cy="44" rx="7" ry="12" transform="rotate(25 52 44)" fill="#1D9E75" opacity="0.65"/>
+//                 <ellipse cx="9" cy="37" rx="5.5" ry="9" transform="rotate(-48 9 37)" fill="#0F6E56" opacity="0.5"/>
+//                 <ellipse cx="63" cy="37" rx="5.5" ry="9" transform="rotate(48 63 37)" fill="#0F6E56" opacity="0.5"/>
+//                 <circle cx="36" cy="38" r="7" fill="#e8d5a3" opacity="0.95"/>
+//                 <circle cx="36" cy="38" r="3.5" fill="#ba7517" opacity="0.6"/>
+//               </svg>
+//               <h2 className="reg-panel-title">គ្រឹះស្ថាន<br/>សិក្សា</h2>
+//               <p className="reg-panel-sub">ចាប់ផ្ដើម<br/>ដំណើរការ<br/>សិក្សាថ្មី</p>
+//             </div>
+//           </div>
+
+//           {/* ── Form area ── */}
+//           <div className="reg-form-area">
+//             <h2 className="reg-heading">បង្កើតគណនីថ្មី</h2>
+//             <p className="reg-sub">ចុះឈ្មោះជាសិស្សថ្មី</p>
+
+//             <form onSubmit={handleSubmit} autoComplete="off">
+
+//               <div className="field">
+//                 <label>ឈ្មោះពេញ</label>
+//                 <input
+//                   type="text"
+//                   name="fullName"
+//                   placeholder="បញ្ចូលឈ្មោះពេញ"
+//                   value={formData.fullName}
+//                   onChange={handleChange}
+//                   required
+//                 />
+//               </div>
+
+//               <div className="field">
+//                 <label>ឈ្មោះអ្នកប្រើប្រាស់</label>
+//                 <input
+//                   type="text"
+//                   name="username"
+//                   placeholder="ជ្រើសរើសឈ្មោះអ្នកប្រើ"
+//                   value={formData.username}
+//                   onChange={handleChange}
+//                   required
+//                 />
+//               </div>
+
+//               <div className="field">
+//                 <label>អ៊ីមែល</label>
+//                 <input
+//                   type="email"
+//                   name="email"
+//                   placeholder="example@email.com"
+//                   value={formData.email}
+//                   onChange={handleChange}
+//                   required
+//                 />
+//               </div>
+
+//               <div className="field">
+//                 <label>ថ្នាក់រៀន</label>
+//                 <select
+//                   name="classId"
+//                   value={formData.classId}
+//                   onChange={handleChange}
+//                   required
+//                   disabled={loadingClasses}
+//                 >
+//                   <option value="">-- ជ្រើសរើសថ្នាក់ --</option>
+//                   {classes.map(cls => (
+//                     <option key={cls.id} value={cls.id}>{cls.name}</option>
+//                   ))}
+//                 </select>
+//                 {loadingClasses && <p className="loading-text">កំពុងផ្ទុក...</p>}
+//               </div>
+
+//               <div className="field-row">
+//                 <div className="field">
+//                   <label>ពាក្យសម្ងាត់</label>
+//                   <input
+//                     type="password"
+//                     name="password"
+//                     placeholder="បង្កើតពាក្យសម្ងាត់"
+//                     value={formData.password}
+//                     onChange={handleChange}
+//                     required
+//                   />
+//                 </div>
+//                 <div className="field">
+//                   <label>បញ្ជាក់ពាក្យសម្ងាត់</label>
+//                   <input
+//                     type="password"
+//                     name="confirmPassword"
+//                     placeholder="បញ្ជាក់ពាក្យសម្ងាត់"
+//                     value={formData.confirmPassword}
+//                     onChange={handleChange}
+//                     required
+//                   />
+//                 </div>
+//               </div>
+
+//               <button type="submit" className="btn-submit" disabled={loading}>
+//                 {loading ? 'កំពុងចុះឈ្មោះ...' : 'ចុះឈ្មោះ →'}
+//               </button>
+//             </form>
+
+//             <p className="login-link">
+//               មានគណនីរួចហើយ? <Link to="/login">ចូលប្រព័ន្ធ</Link>
+//             </p>
+//           </div>
+
+//         </div>
+//       </div>
+//     </>
+//   );
+// };
+
+// export default Register;
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -5,7 +409,7 @@ import toast from 'react-hot-toast';
 import api from '../../services/api';
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Khmer:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Khmer:wght@400;600&family=DM+Sans:wght@300;400;500;600&display=swap');
 
   .reg-page {
     min-height: 100vh;
@@ -14,6 +418,7 @@ const styles = `
     justify-content: center;
     background: #f5f3ee;
     padding: 2rem 1rem;
+    font-family: 'DM Sans', system-ui, sans-serif;
   }
 
   .reg-card {
@@ -23,6 +428,7 @@ const styles = `
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+    background: #fff;
   }
 
   .reg-panel {
@@ -41,9 +447,7 @@ const styles = `
   .reg-panel-deco {
     position: absolute;
     inset: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0.1;
+    opacity: 0.08;
     pointer-events: none;
   }
 
@@ -56,7 +460,7 @@ const styles = `
   .reg-lotus {
     width: 72px;
     height: 72px;
-    margin: 0 auto 20px;
+    margin-bottom: 20px;
   }
 
   .reg-panel-title {
@@ -64,53 +468,44 @@ const styles = `
     color: #e8d5a3;
     font-size: 18px;
     font-weight: 600;
-    line-height: 1.6;
+    line-height: 1.5;
     margin: 0 0 12px;
   }
 
   .reg-panel-sub {
     color: #9fcfb8;
-    font-size: 12px;
-    font-family: 'DM Sans', sans-serif;
-    line-height: 1.7;
+    font-size: 12.5px;
+    line-height: 1.6;
     margin: 0;
   }
 
   .reg-form-area {
     flex: 1;
-    background: #fff;
-    padding: 2.5rem 2rem;
+    padding: 2.8rem 2.2rem;
     overflow-y: auto;
-    font-family: 'DM Sans', sans-serif;
   }
 
   .reg-heading {
     font-family: 'Noto Serif Khmer', serif;
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 600;
     color: #1a1a1a;
-    margin: 0 0 4px;
+    margin-bottom: 6px;
   }
 
   .reg-sub {
-    font-size: 13px;
-    color: #888;
-    margin: 0 0 1.75rem;
-  }
-
-  .field-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
+    font-size: 13.5px;
+    color: #666;
+    margin-bottom: 1.8rem;
   }
 
   .field {
-    margin-bottom: 16px;
+    margin-bottom: 18px;
   }
 
   .field label {
     display: block;
-    font-size: 12px;
+    font-size: 12.8px;
     font-weight: 500;
     color: #555;
     margin-bottom: 6px;
@@ -120,81 +515,85 @@ const styles = `
   .field input,
   .field select {
     width: 100%;
-    box-sizing: border-box;
-    height: 40px;
-    padding: 0 12px;
+    height: 42px;
+    padding: 0 14px;
     border: 1px solid #ddd;
-    border-radius: 7px;
-    font-size: 13px;
-    font-family: 'DM Sans', sans-serif;
-    color: #1a1a1a;
+    border-radius: 8px;
+    font-size: 14px;
     background: #fafaf9;
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    -webkit-appearance: none;
+    transition: all 0.2s;
   }
 
   .field input:focus,
   .field select:focus {
     border-color: #1D9E75;
-    box-shadow: 0 0 0 3px rgba(29,158,117,0.12);
+    box-shadow: 0 0 0 3px rgba(29, 158, 117, 0.12);
     background: #fff;
+    outline: none;
   }
 
-  .field input::placeholder {
-    color: #bbb;
-    font-size: 12px;
-  }
-
-  .loading-text {
-    font-size: 11px;
-    color: #aaa;
-    margin-top: 4px;
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
   }
 
   .btn-submit {
     width: 100%;
-    height: 44px;
+    height: 46px;
     background: #0a4a38;
     color: #e8d5a3;
     border: none;
     border-radius: 8px;
-    font-size: 15px;
     font-family: 'Noto Serif Khmer', serif;
+    font-size: 15.5px;
     font-weight: 600;
     cursor: pointer;
-    letter-spacing: 0.01em;
-    transition: background 0.2s, transform 0.1s;
-    margin-top: 6px;
+    margin-top: 8px;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
   }
 
-  .btn-submit:hover:not(:disabled) { background: #0d5c46; }
-  .btn-submit:active:not(:disabled) { transform: scale(0.99); }
-  .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-submit:hover:not(:disabled) {
+    background: #0d5c46;
+    transform: translateY(-1px);
+  }
+
+  .btn-submit:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
 
   .login-link {
     text-align: center;
-    font-size: 13px;
-    color: #888;
-    margin-top: 16px;
+    font-size: 13.5px;
+    color: #777;
+    margin-top: 20px;
   }
 
   .login-link a {
     color: #1D9E75;
-    text-decoration: none;
     font-weight: 500;
+    text-decoration: none;
   }
 
-  .login-link a:hover { text-decoration: underline; }
+  .login-link a:hover {
+    text-decoration: underline;
+  }
 
-  @media (max-width: 600px) {
+  .loading-text {
+    font-size: 12px;
+    color: #999;
+    margin-top: 4px;
+  }
+
+  @media (max-width: 640px) {
     .reg-panel { display: none; }
     .field-row { grid-template-columns: 1fr; }
-    .reg-form-area { padding: 2rem 1.25rem; }
+    .reg-form-area { padding: 2rem 1.5rem; }
   }
 `;
 
@@ -208,9 +607,11 @@ const Register = () => {
     role: 'student',
     classId: ''
   });
+
   const [classes, setClasses] = useState([]);
   const [loadingClasses, setLoadingClasses] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -266,7 +667,7 @@ const Register = () => {
       <div className="reg-page">
         <div className="reg-card">
 
-          {/* ── Decorative left panel ── */}
+          {/* Left decorative panel */}
           <div className="reg-panel">
             <svg className="reg-panel-deco" viewBox="0 0 200 600" xmlns="http://www.w3.org/2000/svg">
               {[100, 300, 500].map(cy => (
@@ -276,37 +677,26 @@ const Register = () => {
                   <circle cx="100" cy={cy} r="30" fill="none" stroke="#e8d5a3" strokeWidth="0.5"/>
                 </g>
               ))}
-              <line x1="100" y1="0" x2="100" y2="600" stroke="#e8d5a3" strokeWidth="0.5"/>
-              {[100, 300, 500].map(cy => (
-                <g key={`h${cy}`}>
-                  <line x1="0" y1={cy} x2="200" y2={cy} stroke="#e8d5a3" strokeWidth="0.5"/>
-                  <line x1="43" y1={cy-43} x2="157" y2={cy+43} stroke="#e8d5a3" strokeWidth="0.4"/>
-                  <line x1="43" y1={cy+43} x2="157" y2={cy-43} stroke="#e8d5a3" strokeWidth="0.4"/>
-                </g>
-              ))}
             </svg>
+
             <div className="reg-panel-inner">
               <svg className="reg-lotus" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <ellipse cx="36" cy="48" rx="8" ry="14" fill="#1D9E75" opacity="0.8"/>
                 <ellipse cx="20" cy="44" rx="7" ry="12" transform="rotate(-25 20 44)" fill="#1D9E75" opacity="0.65"/>
                 <ellipse cx="52" cy="44" rx="7" ry="12" transform="rotate(25 52 44)" fill="#1D9E75" opacity="0.65"/>
-                <ellipse cx="9" cy="37" rx="5.5" ry="9" transform="rotate(-48 9 37)" fill="#0F6E56" opacity="0.5"/>
-                <ellipse cx="63" cy="37" rx="5.5" ry="9" transform="rotate(48 63 37)" fill="#0F6E56" opacity="0.5"/>
                 <circle cx="36" cy="38" r="7" fill="#e8d5a3" opacity="0.95"/>
-                <circle cx="36" cy="38" r="3.5" fill="#ba7517" opacity="0.6"/>
               </svg>
               <h2 className="reg-panel-title">គ្រឹះស្ថាន<br/>សិក្សា</h2>
-              <p className="reg-panel-sub">ចាប់ផ្ដើម<br/>ដំណើរការ<br/>សិក្សាថ្មី</p>
+              <p className="reg-panel-sub">ចាប់ផ្ដើមដំណើរការសិក្សាថ្មី</p>
             </div>
           </div>
 
-          {/* ── Form area ── */}
+          {/* Form Area */}
           <div className="reg-form-area">
             <h2 className="reg-heading">បង្កើតគណនីថ្មី</h2>
             <p className="reg-sub">ចុះឈ្មោះជាសិស្សថ្មី</p>
 
             <form onSubmit={handleSubmit} autoComplete="off">
-
               <div className="field">
                 <label>ឈ្មោះពេញ</label>
                 <input
