@@ -9,6 +9,7 @@ import ExamManagement from '../../components/admin/ExamManagement';  // <-- Chec
 import Reports from '../../components/admin/Reports';
 import { FaUsers, FaBook, FaQuestionCircle, FaChartLine, FaSignOutAlt } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import ClassSubjectManager from '../../components/admin/ClassSubjectManager';
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
@@ -21,6 +22,7 @@ const AdminDashboard = () => {
     { id: 'subjects', label: 'គ្រប់គ្រងមុខវិជ្ជា', icon: '📚' },
     { id: 'questions', label: 'គ្រប់គ្រងសំណួរ', icon: '❓' },
     { id: 'exams', label: 'គ្រប់គ្រងការប្រឡង', icon: '📝' },
+     { id: 'class-subjects', label: 'កំណត់មុខវិជ្ជាតាមថ្នាក់', icon: '🏫' },  
     { id: 'reports', label: 'របាយការណ៍', icon: '📈' },
   ];
 
@@ -40,6 +42,8 @@ const AdminDashboard = () => {
         return <QuestionManagement />;
       case 'exams':
         return <ExamManagement />;
+      case 'class-subjects':
+        return <ClassSubjectManager />;   
       case 'reports':
         return <Reports />;
       default:

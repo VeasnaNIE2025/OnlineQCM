@@ -77,29 +77,61 @@ const QuestionManagement = () => {
   }, [loadQuestions]);
 
   // ---------- Image upload ----------
+  // const handleImageUpload = async (e) => {
+  //   const file = e.target.files[0];
+  //   if (!file) return;
+
+  //   const formDataUpload = new FormData();
+  //   formDataUpload.append('image', file);
+
+  //   setUploading(true);
+  //   try {
+  //     const response = await api.post('/admin/upload-image', formDataUpload, {
+  //       headers: { 'Content-Type': 'multipart/form-data' }
+  //     });
+  //     const uploadedUrl = response.data.imageUrl;
+  //     setFormData(prev => ({ ...prev, imageUrl: uploadedUrl }));
+  //     setImagePreview(uploadedUrl);
+  //     toast.success('រូបភាពបានផ្ទុកឡើងដោយជោគជ័យ');
+  //   } catch (error) {
+  //     console.error('Upload error:', error);
+  //     toast.error('មិនអាចផ្ទុករូបភាពបានទេ');
+  //   } finally {
+  //     setUploading(false);
+  //   }
+  // };
   const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const file = e.target.files[0];
+  if (!file) return;
 
-    const formDataUpload = new FormData();
-    formDataUpload.append('image', file);
+  // ត្រួតពិនិត្យ format មុន upload
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (!allowedTypes.includes(file.type)) {
+    toast.error('រូបភាពត្រូវតែជា JPG, PNG, GIF, ឬ WEBP');
+    e.target.value = '';
+    return;
+  }
 
-    setUploading(true);
-    try {
-      const response = await api.post('/admin/upload-image', formDataUpload, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      const uploadedUrl = response.data.imageUrl;
-      setFormData(prev => ({ ...prev, imageUrl: uploadedUrl }));
-      setImagePreview(uploadedUrl);
-      toast.success('រូបភាពបានផ្ទុកឡើងដោយជោគជ័យ');
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast.error('មិនអាចផ្ទុករូបភាពបានទេ');
-    } finally {
-      setUploading(false);
-    }
-  };
+  const formDataUpload = new FormData();
+  formDataUpload.append('image', file);
+
+  setUploading(true);
+  try {
+    const response = await api.post('/admin/upload-image', formDataUpload, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    setFormData(prev => ({ ...prev, imageUrl: response.data.imageUrl }));
+    setImagePreview(response.data.imageUrl);
+    toast.success('រូបភាពបានផ្ទុកឡើងដោយជោគជ័យ');
+  } catch (error) {
+    // បង្ហាញ error message ពី server ផ្ទាល់
+    const msg = error.response?.data?.message || 'មិនអាចផ្ទុករូបភាពបានទេ';
+    toast.error(msg);
+    e.target.value = '';
+  } finally {
+    setUploading(false);
+  }
+};
 
   const handleRemoveImage = () => {
     setFormData(prev => ({ ...prev, imageUrl: '' }));
