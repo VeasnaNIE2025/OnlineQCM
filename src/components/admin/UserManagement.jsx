@@ -1,25 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { FaEdit, FaTrash, FaPlus, FaSearch, FaUserGraduate, FaChalkboardTeacher, FaUserShield, FaToggleOn, FaToggleOff } from 'react-icons/fa';
+import {
+  FaEdit, FaTrash, FaPlus, FaSearch,
+  FaUserGraduate, FaChalkboardTeacher, FaUserShield,
+  FaToggleOn, FaToggleOff
+} from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import userService from '../../services/userService';
+import api from '../../services/api';
 
 const UserManagement = () => {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers]       = useState([]);
+  const [classes, setClasses]   = useState([]);
+  const [loading, setLoading]   = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal]   = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
     fullName: '',
     role: 'student',
+    classId: '',
     isActive: true
   });
 
+  // ---------- Load data ----------
   useEffect(() => {
     loadUsers();
+    loadClasses();
   }, []);
 
   const loadUsers = async () => {
@@ -27,33 +37,63 @@ const UserManagement = () => {
       setLoading(true);
       const data = await userService.getUsers();
       setUsers(data);
-    } catch (error) {
+    } catch {
       toast.error('មិនអាចផ្ទុកទិន្នន័យអ្នកប្រើប្រាស់បានទេ');
     } finally {
       setLoading(false);
     }
   };
 
+  const loadClasses = async () => {
+    try {
+      const res = await api.get('/admin/classes');
+      setClasses(res.data);
+    } catch {
+      // classes not critical — silent fail
+    }
+  };
+
+  // ---------- Helpers ----------
+  const getClassName = (classId) => {
+    if (!classId) return '—';
+    const cls = classes.find(c => c.id === classId || c.id === Number(classId));
+    return cls ? cls.name : '—';
+  };
+
+  const getRoleIcon = (role) => {
+    switch (role) {
+      case 'admin':   return <FaUserShield className="text-danger me-1" />;
+      case 'teacher': return <FaChalkboardTeacher className="text-success me-1" />;
+      default:        return <FaUserGraduate className="text-primary me-1" />;
+    }
+  };
+
+  const getRoleText = (role) => {
+    switch (role) {
+      case 'admin':   return 'អ្នកគ្រប់គ្រង';
+      case 'teacher': return 'គ្រូបង្រៀន';
+      default:        return 'សិស្ស';
+    }
+  };
+
+  // ---------- Modal ----------
   const handleOpenModal = (user = null) => {
     if (user) {
       setEditingUser(user);
       setFormData({
-        username: user.username,
-        email: user.email,
-        password: '',
-        fullName: user.fullName,
-        role: user.role,
-        isActive: user.isActive
+        username:  user.username  || '',
+        email:     user.email     || '',
+        password:  '',
+        fullName:  user.fullName  || '',
+        role:      user.role      || 'student',
+        classId:   user.classId   || '',
+        isActive:  user.isActive
       });
     } else {
       setEditingUser(null);
       setFormData({
-        username: '',
-        email: '',
-        password: '',
-        fullName: '',
-        role: 'student',
-        isActive: true
+        username: '', email: '', password: '',
+        fullName: '', role: 'student', classId: '', isActive: true
       });
     }
     setShowModal(true);
@@ -62,45 +102,40 @@ const UserManagement = () => {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingUser(null);
-    setFormData({
-      username: '',
-      email: '',
-      password: '',
-      fullName: '',
-      role: 'student',
-      isActive: true
-    });
   };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === 'checkbox' ? checked : value
-    });
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+      // reset classId when role changes away from student
+      ...(name === 'role' && value !== 'student' ? { classId: '' } : {})
+    }));
   };
 
+  // ---------- Submit ----------
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!formData.username || !formData.email || !formData.fullName) {
       toast.error('សូមបំពេញព័ត៌មានឲ្យបានពេញលេញ');
       return;
     }
-
     if (!editingUser && !formData.password) {
       toast.error('សូមបញ្ចូលពាក្យសម្ងាត់');
       return;
     }
-
     try {
+      const payload = { ...formData };
+      if (!payload.password) delete payload.password;
+      // send classId only for students
+      if (payload.role !== 'student') payload.classId = null;
+
       if (editingUser) {
-        const updateData = { ...formData };
-        if (!updateData.password) delete updateData.password;
-        await userService.updateUser(editingUser.id, updateData);
+        await userService.updateUser(editingUser.id, payload);
         toast.success('កែប្រែអ្នកប្រើប្រាស់បានជោគជ័យ');
       } else {
-        await userService.createUser(formData);
+        await userService.createUser(payload);
         toast.success('បង្កើតអ្នកប្រើប្រាស់ថ្មីបានជោគជ័យ');
       }
       loadUsers();
@@ -110,15 +145,13 @@ const UserManagement = () => {
     }
   };
 
+  // ---------- Toggle / Delete ----------
   const handleToggleStatus = async (user) => {
     try {
-      await userService.updateUser(user.id, {
-        ...user,
-        isActive: !user.isActive
-      });
+      await userService.updateUser(user.id, { ...user, isActive: !user.isActive });
       toast.success(`បាន${user.isActive ? 'បិទ' : 'បើក'}គណនី ${user.fullName}`);
       loadUsers();
-    } catch (error) {
+    } catch {
       toast.error('មិនអាចប្តូរស្ថានភាពបានទេ');
     }
   };
@@ -129,40 +162,22 @@ const UserManagement = () => {
         await userService.deleteUser(id);
         toast.success('លុបអ្នកប្រើប្រាស់បានជោគជ័យ');
         loadUsers();
-      } catch (error) {
+      } catch {
         toast.error('មិនអាចលុបអ្នកប្រើប្រាស់បានទេ');
       }
     }
   };
 
-  const getRoleIcon = (role) => {
-    switch(role) {
-      case 'admin': return <FaUserShield className="text-danger" />;
-      case 'teacher': return <FaChalkboardTeacher className="text-success" />;
-      default: return <FaUserGraduate className="text-primary" />;
-    }
-  };
-
-  const getRoleText = (role) => {
-    switch(role) {
-      case 'admin': return 'អ្នកគ្រប់គ្រង';
-      case 'teacher': return 'គ្រូបង្រៀន';
-      default: return 'សិស្ស';
-    }
-  };
-
-  const filteredUsers = users.filter(user =>
-    user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = users.filter(u =>
+    u.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    u.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    u.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
     return (
       <div className="text-center py-5">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
+        <div className="spinner-border text-primary" role="status" />
         <p className="mt-2">កំពុងផ្ទុកទិន្នន័យ...</p>
       </div>
     );
@@ -181,105 +196,104 @@ const UserManagement = () => {
         </button>
       </div>
 
-      {/* Search Bar */}
+      {/* Search */}
       <div className="card shadow-sm mb-4">
         <div className="card-body">
           <div className="input-group">
-            <span className="input-group-text bg-white">
-              <FaSearch className="text-muted" />
-            </span>
+            <span className="input-group-text bg-white"><FaSearch className="text-muted" /></span>
             <input
               type="text"
               className="form-control"
               placeholder="ស្វែងរកតាមឈ្មោះ អ៊ីមែល ឬឈ្មោះអ្នកប្រើប្រាស់..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
       </div>
 
-      {/* Users Table */}
+      {/* Table */}
       <div className="card shadow-sm">
         <div className="card-body p-0">
           <div className="table-responsive">
             <table className="table table-hover mb-0">
               <thead className="table-light">
                 <tr>
-                  <th style={{ width: '50px' }}>#</th>
+                  <th style={{ width: 50 }}>#</th>
                   <th>ឈ្មោះពេញ</th>
                   <th>ឈ្មោះអ្នកប្រើ</th>
                   <th>អ៊ីមែល</th>
                   <th>តួនាទី</th>
+                  <th>ថ្នាក់</th>
                   <th>ស្ថានភាព</th>
-                  <th style={{ width: '120px' }}>សកម្មភាព</th>
+                  <th style={{ width: 120 }}>សកម្មភាព</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="text-center py-5">
-                      <div className="text-muted">
-                        <FaUserGraduate size={50} className="mb-2" />
-                        <p>មិនមានទិន្នន័យអ្នកប្រើប្រាស់</p>
+                    <td colSpan="8" className="text-center py-5 text-muted">
+                      <FaUserGraduate size={50} className="mb-2" />
+                      <p>មិនមានទិន្នន័យអ្នកប្រើប្រាស់</p>
+                    </td>
+                  </tr>
+                ) : filteredUsers.map((user, index) => (
+                  <tr key={user.id}>
+                    <td>{index + 1}</td>
+                    <td><strong>{user.fullName}</strong></td>
+                    <td>{user.username}</td>
+                    <td>{user.email}</td>
+                    <td>
+                      <span className="badge bg-light text-dark">
+                        {getRoleIcon(user.role)}{getRoleText(user.role)}
+                      </span>
+                    </td>
+                    <td>
+                      {user.role === 'student'
+                        ? <span className="badge bg-info text-dark">{getClassName(user.classId)}</span>
+                        : <span className="text-muted small">—</span>
+                      }
+                    </td>
+                    <td>
+                      <span className={`badge ${user.isActive ? 'bg-success' : 'bg-secondary'}`}>
+                        {user.isActive ? 'សកម្ម' : 'បិទ'}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="btn-group">
+                        <button
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={() => handleOpenModal(user)}
+                          title="កែប្រែ"
+                        >
+                          <FaEdit />
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-warning"
+                          onClick={() => handleToggleStatus(user)}
+                          title={user.isActive ? 'បិទ' : 'បើក'}
+                        >
+                          {user.isActive ? <FaToggleOff /> : <FaToggleOn />}
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => handleDelete(user.id, user.fullName)}
+                          disabled={user.role === 'admin'}
+                          title={user.role === 'admin' ? 'មិនអាចលុប Admin' : 'លុប'}
+                        >
+                          <FaTrash />
+                        </button>
                       </div>
                     </td>
                   </tr>
-                ) : (
-                  filteredUsers.map((user, index) => (
-                    <tr key={user.id}>
-                      <td>{index + 1}</td>
-                      <td>
-                        <strong>{user.fullName}</strong>
-                      </td>
-                      <td>{user.username}</td>
-                      <td>{user.email}</td>
-                      <td>
-                        <span className="badge bg-light text-dark">
-                          {getRoleIcon(user.role)} {getRoleText(user.role)}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`badge ${user.isActive ? 'bg-success' : 'bg-secondary'}`}>
-                          {user.isActive ? 'សកម្ម' : 'បិទ'}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="btn-group">
-                          <button
-                            className="btn btn-sm btn-outline-primary"
-                            onClick={() => handleOpenModal(user)}
-                            title="កែប្រែ"
-                          >
-                            <FaEdit />
-                          </button>
-                          <button
-                            className="btn btn-sm btn-outline-warning"
-                            onClick={() => handleToggleStatus(user)}
-                            title={user.isActive ? 'បិទ' : 'បើក'}
-                          >
-                            {user.isActive ? <FaToggleOff /> : <FaToggleOn />}
-                          </button>
-                          <button
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() => handleDelete(user.id, user.fullName)}
-                            disabled={user.role === 'admin'}
-                            title={user.role === 'admin' ? 'មិនអាចលុប Admin បានទេ' : 'លុប'}
-                          >
-                            <FaTrash />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>
         </div>
       </div>
 
-      {/* Modal Form */}
+      {/* Modal */}
       {showModal && (
         <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog modal-dialog-centered">
@@ -288,86 +302,77 @@ const UserManagement = () => {
                 <h5 className="modal-title">
                   {editingUser ? '✏️ កែប្រែអ្នកប្រើប្រាស់' : '➕ បន្ថែមអ្នកប្រើប្រាស់ថ្មី'}
                 </h5>
-                <button type="button" className="btn-close" onClick={handleCloseModal}></button>
+                <button type="button" className="btn-close" onClick={handleCloseModal} />
               </div>
+
               <form onSubmit={handleSubmit}>
                 <div className="modal-body">
+
                   <div className="mb-3">
                     <label className="form-label">ឈ្មោះពេញ <span className="text-danger">*</span></label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="fullName"
-                      value={formData.fullName}
-                      onChange={handleChange}
-                      required
-                      placeholder="បញ្ចូលឈ្មោះពេញ"
-                    />
+                    <input type="text" className="form-control" name="fullName"
+                      value={formData.fullName} onChange={handleChange} required
+                      placeholder="បញ្ចូលឈ្មោះពេញ" />
                   </div>
+
                   <div className="mb-3">
                     <label className="form-label">ឈ្មោះអ្នកប្រើប្រាស់ <span className="text-danger">*</span></label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="username"
-                      value={formData.username}
-                      onChange={handleChange}
-                      required
-                      placeholder="ជ្រើសរើសឈ្មោះអ្នកប្រើប្រាស់"
-                    />
+                    <input type="text" className="form-control" name="username"
+                      value={formData.username} onChange={handleChange} required
+                      placeholder="ជ្រើសរើសឈ្មោះអ្នកប្រើប្រាស់" />
                   </div>
+
                   <div className="mb-3">
                     <label className="form-label">អ៊ីមែល <span className="text-danger">*</span></label>
-                    <input
-                      type="email"
-                      className="form-control"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                      placeholder="example@email.com"
-                    />
+                    <input type="email" className="form-control" name="email"
+                      value={formData.email} onChange={handleChange} required
+                      placeholder="example@email.com" />
                   </div>
+
                   <div className="mb-3">
                     <label className="form-label">
                       {editingUser ? 'ពាក្យសម្ងាត់ថ្មី (ទុកចាស់បើមិនចង់ប្តូរ)' : 'ពាក្យសម្ងាត់'}
                     </label>
-                    <input
-                      type="password"
-                      className="form-control"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
+                    <input type="password" className="form-control" name="password"
+                      value={formData.password} onChange={handleChange}
                       required={!editingUser}
-                      placeholder={editingUser ? 'បញ្ចូលពាក្យសម្ងាត់ថ្មី' : 'បញ្ចូលពាក្យសម្ងាត់'}
-                    />
+                      placeholder={editingUser ? 'បញ្ចូលពាក្យសម្ងាត់ថ្មី' : 'បញ្ចូលពាក្យសម្ងាត់'} />
                   </div>
+
                   <div className="mb-3">
                     <label className="form-label">តួនាទី</label>
-                    <select
-                      className="form-select"
-                      name="role"
-                      value={formData.role}
-                      onChange={handleChange}
-                    >
+                    <select className="form-select" name="role"
+                      value={formData.role} onChange={handleChange}>
                       <option value="student">សិស្ស</option>
                       <option value="teacher">គ្រូបង្រៀន</option>
                       <option value="admin">អ្នកគ្រប់គ្រង</option>
                     </select>
                   </div>
+
+                  {/* ថ្នាក់ — បង្ហាញតែ student ប៉ុណ្ណោះ */}
+                  {formData.role === 'student' && (
+                    <div className="mb-3">
+                      <label className="form-label">ថ្នាក់</label>
+                      <select className="form-select" name="classId"
+                        value={formData.classId} onChange={handleChange}>
+                        <option value="">— មិនទាន់ assign ថ្នាក់ —</option>
+                        {classes.map(cls => (
+                          <option key={cls.id} value={cls.id}>{cls.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   <div className="mb-3 form-check">
-                    <input
-                      type="checkbox"
-                      className="form-check-input"
-                      name="isActive"
-                      checked={formData.isActive}
-                      onChange={handleChange}
-                    />
+                    <input type="checkbox" className="form-check-input"
+                      name="isActive" checked={formData.isActive} onChange={handleChange} />
                     <label className="form-check-label">
                       សកម្ម (អនុញ្ញាតឱ្យចូលប្រើប្រាស់)
                     </label>
                   </div>
+
                 </div>
+
                 <div className="modal-footer">
                   <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>
                     បោះបង់
