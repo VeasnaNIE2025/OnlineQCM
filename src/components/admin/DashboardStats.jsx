@@ -382,28 +382,96 @@ const DashboardStats = () => {
       </div>
 
       {/* ── Charts Row 2 ── */}
+      {/* ── Class Statistics Charts ── */}
       <div className="row g-4 mb-4">
+        {/* Chart 1: សិស្សចុះឈ្មោះ vs បានប្រឡងតាមថ្នាក់ */}
         <div className="col-md-6">
           <div className="card shadow-sm h-100 border-0">
             <div className="card-header bg-white border-0 pt-3">
-              <h6 className="mb-0 fw-bold"><FaCalendarAlt className="me-2 text-info" />សកម្មភាពប្រចាំខែ</h6>
+              <h6 className="mb-0 fw-bold">
+                <FaSchool className="me-2 text-primary" />
+                សិស្សចុះឈ្មោះ vs បានប្រឡងតាមថ្នាក់
+              </h6>
             </div>
             <div className="card-body">
-              <Line data={monthlyChartData}
-                options={{ responsive: true, plugins: { legend: { position: 'top' } } }}
-                height={250} />
+              {classStats.length > 0 ? (
+                <Bar
+                  data={{
+                    labels: classStats.map(c => c.className),
+                    datasets: [
+                      {
+                        label: 'ចុះឈ្មោះសរុប',
+                        data: classStats.map(c => c.totalStudents),
+                        backgroundColor: '#4F81BD',
+                        borderRadius: 5
+                      },
+                      {
+                        label: 'បានប្រឡង',
+                        data: classStats.map(c => c.studentsExamined),
+                        backgroundColor: '#9BBB59',
+                        borderRadius: 5
+                      },
+                      {
+                        label: 'មិនទាន់ប្រឡង',
+                        data: classStats.map(c => Math.max(0, c.totalStudents - c.studentsExamined)),
+                        backgroundColor: '#F79646',
+                        borderRadius: 5
+                      }
+                    ]
+                  }}
+                  options={{
+                    responsive: true,
+                    plugins: { legend: { position: 'top' } },
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                  }}
+                  height={250}
+                />
+              ) : (
+                <div className="text-center py-5 text-muted">មិនទាន់មានទិន្នន័យ</div>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Chart 2: ជាប់ vs ធ្លាក់តាមថ្នាក់ */}
         <div className="col-md-6">
           <div className="card shadow-sm h-100 border-0">
             <div className="card-header bg-white border-0 pt-3">
-              <h6 className="mb-0 fw-bold"><FaBook className="me-2 text-success" />ស្ថិតិតាមមុខវិជ្ជា</h6>
+              <h6 className="mb-0 fw-bold">
+                <FaChartLine className="me-2 text-success" />
+                ជាប់ vs ធ្លាក់តាមថ្នាក់
+              </h6>
             </div>
             <div className="card-body">
-              <Pie data={subjectData}
-                options={{ responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }}
-                height={250} />
+              {classStats.length > 0 ? (
+                <Bar
+                  data={{
+                    labels: classStats.map(c => c.className),
+                    datasets: [
+                      {
+                        label: 'ជាប់',
+                        data: classStats.map(c => c.passed),
+                        backgroundColor: '#28a745',
+                        borderRadius: 5
+                      },
+                      {
+                        label: 'ធ្លាក់',
+                        data: classStats.map(c => c.failed),
+                        backgroundColor: '#dc3545',
+                        borderRadius: 5
+                      }
+                    ]
+                  }}
+                  options={{
+                    responsive: true,
+                    plugins: { legend: { position: 'top' } },
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                  }}
+                  height={250}
+                />
+              ) : (
+                <div className="text-center py-5 text-muted">មិនទាន់មានទិន្នន័យ</div>
+              )}
             </div>
           </div>
         </div>
