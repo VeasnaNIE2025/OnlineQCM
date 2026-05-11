@@ -1,16 +1,12 @@
 import { useState, useEffect } from 'react';
 import assignmentService from '../../services/assignmentService';
-import api from '../../services/api';          // ← import api ថ្មី
+import api from '../../services/api';
 
 const CreateAssignment = ({ onCreated }) => {
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading]   = useState(false);
   const [form, setForm]         = useState({
-    title:       '',
-    description: '',
-    subjectId:   '',
-    dueDate:     '',
-    totalPoints: 100
+    title: '', description: '', subjectId: '', dueDate: '', totalPoints: 100
   });
 
   useEffect(() => {
@@ -19,9 +15,7 @@ const CreateAssignment = ({ onCreated }) => {
     });
   }, []);
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,54 +33,63 @@ const CreateAssignment = ({ onCreated }) => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow p-6">
-      <h2 className="text-xl font-bold text-gray-800 mb-4">បង្កើតកិច្ចការថ្មី</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="card shadow-sm">
+      <div className="card-body p-4">
+        <h5 className="card-title mb-4">បង្កើតកិច្ចការថ្មី</h5>
+        <form onSubmit={handleSubmit}>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">ចំណងជើងកិច្ចការ</label>
-          <input type="text" name="title" value={form.title} onChange={handleChange} required
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="ឧ. កិច្ចការអំពីវិចនានុក្រម" />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">ពិពណ៌នា</label>
-          <textarea name="description" value={form.description} onChange={handleChange} rows={3}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="សរសេរការណែនាំ..." />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">មុខវិជ្ជា</label>
-            <select name="subjectId" value={form.subjectId} onChange={handleChange} required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="">ជ្រើសរើស...</option>
-              {subjects.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
+          {/* Title */}
+          <div className="mb-3">
+            <label className="form-label fw-medium">ចំណងជើងកិច្ចការ</label>
+            <input type="text" name="title" value={form.title}
+              onChange={handleChange} required
+              className="form-control"
+              placeholder="ឧ. កិច្ចការអំពីវិចនានុក្រម" />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">ថ្ងៃផុតកំណត់</label>
-            <input type="datetime-local" name="dueDate" value={form.dueDate} onChange={handleChange} required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+
+          {/* Description */}
+          <div className="mb-3">
+            <label className="form-label fw-medium">ពិពណ៌នា</label>
+            <textarea name="description" value={form.description}
+              onChange={handleChange} rows={3}
+              className="form-control"
+              placeholder="សរសេរការណែនាំ..." />
           </div>
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">ពិន្ទុសរុប</label>
-          <input type="number" name="totalPoints" value={form.totalPoints} onChange={handleChange}
-            min={1} max={100}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
+          {/* Subject + DueDate */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label className="form-label fw-medium">មុខវិជ្ជា</label>
+              <select name="subjectId" value={form.subjectId}
+                onChange={handleChange} required className="form-select">
+                <option value="">ជ្រើសរើស...</option>
+                {subjects.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-6">
+              <label className="form-label fw-medium">ថ្ងៃផុតកំណត់</label>
+              <input type="datetime-local" name="dueDate" value={form.dueDate}
+                onChange={handleChange} required className="form-control" />
+            </div>
+          </div>
 
-        <button type="submit" disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium">
-          {loading ? 'កំពុងបង្កើត...' : 'បង្កើតកិច្ចការ'}
-        </button>
-      </form>
+          {/* Total Points */}
+          <div className="mb-4">
+            <label className="form-label fw-medium">ពិន្ទុសរុប</label>
+            <input type="number" name="totalPoints" value={form.totalPoints}
+              onChange={handleChange} min={1} max={100} className="form-control" />
+          </div>
+
+          <button type="submit" disabled={loading} className="btn btn-primary w-100">
+            {loading ? (
+              <><span className="spinner-border spinner-border-sm me-2" />កំពុងបង្កើត...</>
+            ) : 'បង្កើតកិច្ចការ'}
+          </button>
+
+        </form>
+      </div>
     </div>
   );
 };
