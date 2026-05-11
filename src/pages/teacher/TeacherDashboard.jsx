@@ -6,6 +6,7 @@ import {
   FaUsers, FaEdit, FaTrash, FaPlus, FaClipboardList, FaArrowLeft
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import api from '../../services/api';
 import teacherService from '../../services/teacherService';
 import CreateAssignment from '../../components/teacher/CreateAssignment';
 import GradeSubmission from '../../components/teacher/GradeSubmission';
@@ -42,19 +43,15 @@ const TeacherDashboard = () => {
 const loadData = async () => {
   try {
     setLoading(true);
+
+    // ── ហៅ api ផ្ទាល់ — មិនពឹង teacherService ──────────
     const [subjectsRes, statsRes] = await Promise.all([
-      teacherService.getMySubjects(),   // ← return axios response
-      teacherService.getMyStats()       // ← return axios response
+      api.get('/teacher/subjects'),   // ← api ផ្ទាល់
+      api.get('/teacher/stats')       // ← api ផ្ទាល់
     ]);
 
-    // ── ទាញ data ពី response ──────────────────────────
-    const subjectsData = subjectsRes.data?.subjects  // { subjects: [...] }
-                      || subjectsRes.data             // [...] array ផ្ទាល់
-                      || [];
-
-    const statsData    = statsRes.data?.stats
-                      || statsRes.data
-                      || { totalQuestions: 0, totalStudents: 0 };
+    const subjectsData = subjectsRes.data?.subjects || subjectsRes.data || [];
+    const statsData    = statsRes.data?.stats        || statsRes.data    || { totalQuestions: 0, totalStudents: 0 };
 
     setSubjects(subjectsData);
     setStats(statsData);
