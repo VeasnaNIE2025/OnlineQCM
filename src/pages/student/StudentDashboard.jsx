@@ -7,7 +7,7 @@ import {
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import studentExamService from '../../services/studentExamService';
-import AssignmentList from '../student/AssignmentList';
+import AssignmentList from '../../components/student/AssignmentList';
 
 // ✅ Parse DB UTC date string correctly
 const parseDBDate = (str) => {
