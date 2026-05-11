@@ -1,32 +1,43 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { FaBook, FaQuestionCircle, FaChartLine, FaSignOutAlt, FaUsers, FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
+import {
+  FaBook, FaQuestionCircle, FaChartLine, FaSignOutAlt,
+  FaUsers, FaEdit, FaTrash, FaPlus, FaClipboardList, FaArrowLeft
+} from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import teacherService from '../../services/teacherService';
+import CreateAssignment from '../../components/teacher/CreateAssignment';
+import GradeSubmission from '../../components/teacher/GradeSubmission';
+import assignmentService from '../../services/assignmentService';
 
 const TeacherDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [subjects, setSubjects] = useState([]);
-  const [stats, setStats] = useState({ totalQuestions: 0, totalStudents: 0 });
-  const [questions, setQuestions] = useState([]);
-  const [reports, setReports] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('subjects');
+
+  const [subjects, setSubjects]         = useState([]);
+  const [stats, setStats]               = useState({ totalQuestions: 0, totalStudents: 0 });
+  const [questions, setQuestions]       = useState([]);
+  const [reports, setReports]           = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [activeTab, setActiveTab]       = useState('subjects');
+
+  // Assignment states
+  const [assignments, setAssignments]         = useState([]);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState(null);
+  const [assignmentView, setAssignmentView]   = useState('list'); // 'list' | 'create' | 'grade'
+
   const [showQuestionModal, setShowQuestionModal] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState(null);
+  const [editingQuestion, setEditingQuestion]     = useState(null);
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm]               = useState('');
   const [questionForm, setQuestionForm] = useState({
     subjectId: '', questionText: '',
     option_a: '', option_b: '', option_c: '', option_d: '',
     correctAnswer: 'a', explanation: '', difficulty: 'medium', points: 1
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     try {
@@ -39,14 +50,12 @@ const TeacherDashboard = () => {
       setStats(statsData);
       if (subjectsData.length > 0) setSelectedSubjectId(subjectsData[0].id);
     } catch (error) {
-      console.error(error);
       toast.error('មិនអាចផ្ទុកទិន្នន័យបានទេ');
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ FIX: useCallback ដើម្បីបង្ហាញ deps ត្រឹមត្រូវ
   const loadQuestions = useCallback(async () => {
     try {
       const params = {};
@@ -54,25 +63,28 @@ const TeacherDashboard = () => {
       if (searchTerm) params.search = searchTerm;
       const data = await teacherService.getMyQuestions(params);
       setQuestions(data);
-    } catch (error) {
-      toast.error('មិនអាចផ្ទុកសំណួរបានទេ');
-    }
+    } catch { toast.error('មិនអាចផ្ទុកសំណួរបានទេ'); }
   }, [selectedSubjectId, searchTerm]);
 
   const loadReports = useCallback(async () => {
     try {
       const data = await teacherService.getMyReports();
       setReports(data);
-    } catch (error) {
-      toast.error('មិនអាចផ្ទុករបាយការណ៍បានទេ');
-    }
+    } catch { toast.error('មិនអាចផ្ទុករបាយការណ៍បានទេ'); }
   }, []);
 
-  // ✅ FIX: deps ពេញ
+  const loadAssignments = useCallback(async () => {
+    try {
+      const res = await assignmentService.getTeacherAssignments();
+      setAssignments(res.data?.assignments || res.data || []);
+    } catch { toast.error('មិនអាចផ្ទុកកិច្ចការបានទេ'); }
+  }, []);
+
   useEffect(() => {
-    if (activeTab === 'questions') loadQuestions();
-    else if (activeTab === 'reports') loadReports();
-  }, [activeTab, loadQuestions, loadReports]);
+    if (activeTab === 'questions')   loadQuestions();
+    if (activeTab === 'reports')     loadReports();
+    if (activeTab === 'assignments') loadAssignments();
+  }, [activeTab, loadQuestions, loadReports, loadAssignments]);
 
   const handleLogout = () => {
     logout();
@@ -124,25 +136,24 @@ const TeacherDashboard = () => {
         await teacherService.deleteMyQuestion(id);
         toast.success('លុបសំណួរបានជោគជ័យ');
         loadQuestions();
-      } catch (error) {
-        toast.error('មិនអាចលុបបានទេ');
-      }
+      } catch { toast.error('មិនអាចលុបបានទេ'); }
     }
   };
 
   const formatDate = (date) => new Date(date).toLocaleString('km-KH');
 
-  if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-100">
-        <div className="spinner-border text-primary" />
-      </div>
-    );
-  }
+  const isOverdue = (dueDate) => new Date() > new Date(dueDate);
+
+  if (loading) return (
+    <div className="d-flex justify-content-center align-items-center vh-100">
+      <div className="spinner-border text-primary" />
+    </div>
+  );
 
   return (
     <div className="container mt-4 fade-in">
       <div className="row">
+
         {/* Header */}
         <div className="col-md-12 mb-4">
           <div className="card shadow-sm border-0 bg-primary text-white">
@@ -178,13 +189,35 @@ const TeacherDashboard = () => {
         {/* Tabs */}
         <div className="col-md-12 mb-4">
           <ul className="nav nav-tabs">
-            <li className="nav-item"><button className={`nav-link ${activeTab === 'subjects' ? 'active' : ''}`} onClick={() => setActiveTab('subjects')}><FaBook className="me-2" />មុខវិជ្ជា</button></li>
-            <li className="nav-item"><button className={`nav-link ${activeTab === 'questions' ? 'active' : ''}`} onClick={() => setActiveTab('questions')}><FaQuestionCircle className="me-2" />គ្រប់គ្រងសំណួរ</button></li>
-            <li className="nav-item"><button className={`nav-link ${activeTab === 'reports' ? 'active' : ''}`} onClick={() => setActiveTab('reports')}><FaChartLine className="me-2" />របាយការណ៍</button></li>
+            <li className="nav-item">
+              <button className={`nav-link ${activeTab === 'subjects' ? 'active' : ''}`}
+                onClick={() => setActiveTab('subjects')}>
+                <FaBook className="me-2" />មុខវិជ្ជា
+              </button>
+            </li>
+            <li className="nav-item">
+              <button className={`nav-link ${activeTab === 'questions' ? 'active' : ''}`}
+                onClick={() => setActiveTab('questions')}>
+                <FaQuestionCircle className="me-2" />គ្រប់គ្រងសំណួរ
+              </button>
+            </li>
+            {/* ✅ Tab កិច្ចការ */}
+            <li className="nav-item">
+              <button className={`nav-link ${activeTab === 'assignments' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('assignments'); setAssignmentView('list'); }}>
+                <FaClipboardList className="me-2" />កិច្ចការ
+              </button>
+            </li>
+            <li className="nav-item">
+              <button className={`nav-link ${activeTab === 'reports' ? 'active' : ''}`}
+                onClick={() => setActiveTab('reports')}>
+                <FaChartLine className="me-2" />របាយការណ៍
+              </button>
+            </li>
           </ul>
         </div>
 
-        {/* Subjects Tab */}
+        {/* ── Subjects Tab ── */}
         {activeTab === 'subjects' && (
           <div className="col-md-12">
             {subjects.length === 0 ? (
@@ -213,17 +246,21 @@ const TeacherDashboard = () => {
           </div>
         )}
 
-        {/* Questions Tab */}
+        {/* ── Questions Tab ── */}
         {activeTab === 'questions' && (
           <div className="col-md-12">
             <div className="d-flex justify-content-between mb-3">
               <div className="d-flex gap-2">
-                <select className="form-select w-auto" value={selectedSubjectId} onChange={e => setSelectedSubjectId(e.target.value)}>
+                <select className="form-select w-auto" value={selectedSubjectId}
+                  onChange={e => setSelectedSubjectId(e.target.value)}>
                   {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
-                <input type="text" className="form-control" placeholder="ស្វែងរក..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                <input type="text" className="form-control" placeholder="ស្វែងរក..."
+                  value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
               </div>
-              <button className="btn btn-primary" onClick={openCreateModal}><FaPlus /> បន្ថែមសំណួរ</button>
+              <button className="btn btn-primary" onClick={openCreateModal}>
+                <FaPlus /> បន្ថែមសំណួរ
+              </button>
             </div>
             <div className="card shadow-sm">
               <div className="table-responsive">
@@ -256,7 +293,97 @@ const TeacherDashboard = () => {
           </div>
         )}
 
-        {/* Reports Tab */}
+        {/* ── Assignments Tab ── */}
+        {activeTab === 'assignments' && (
+          <div className="col-md-12">
+
+            {/* View: List */}
+            {assignmentView === 'list' && (
+              <>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h5 className="mb-0">បញ្ជីកិច្ចការ</h5>
+                  <button className="btn btn-primary btn-sm"
+                    onClick={() => setAssignmentView('create')}>
+                    <FaPlus className="me-1" />បង្កើតកិច្ចការថ្មី
+                  </button>
+                </div>
+
+                {assignments.length === 0 ? (
+                  <div className="card shadow-sm text-center py-5">
+                    <FaClipboardList size={50} className="text-muted mb-3" />
+                    <h5>មិនទាន់មានកិច្ចការ</h5>
+                    <button className="btn btn-primary mt-2"
+                      onClick={() => setAssignmentView('create')}>
+                      <FaPlus className="me-1" />បង្កើតដំបូង
+                    </button>
+                  </div>
+                ) : (
+                  <div className="row">
+                    {assignments.map(a => (
+                      <div className="col-md-6 mb-4" key={a.id}>
+                        <div className="card shadow-sm h-100">
+                          <div className="card-body">
+                            <div className="d-flex justify-content-between align-items-start mb-2">
+                              <h6 className="mb-0 fw-bold">{a.title}</h6>
+                              <span className={`badge ${isOverdue(a.dueDate) ? 'bg-danger' : 'bg-success'}`}>
+                                {isOverdue(a.dueDate) ? 'ផុតកំណត់' : 'បើក'}
+                              </span>
+                            </div>
+                            <p className="text-muted small mb-2">{a.Subject?.name || a.subjectName}</p>
+                            {a.description && (
+                              <p className="small mb-2">{a.description}</p>
+                            )}
+                            <div className="d-flex gap-3 text-muted small mb-3">
+                              <span>📅 {new Date(a.dueDate).toLocaleString('km-KH')}</span>
+                              <span>⭐ {a.totalPoints} ពិន្ទុ</span>
+                              <span>📄 {a.submissionCount || 0} ស្នាដៃ</span>
+                            </div>
+                            <button
+                              className="btn btn-outline-primary btn-sm w-100"
+                              onClick={() => {
+                                setSelectedAssignmentId(a.id);
+                                setAssignmentView('grade');
+                              }}>
+                              👁 មើល/ដាក់ពិន្ទុស្នាដៃ
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* View: Create */}
+            {assignmentView === 'create' && (
+              <>
+                <button className="btn btn-outline-secondary btn-sm mb-3"
+                  onClick={() => setAssignmentView('list')}>
+                  <FaArrowLeft className="me-1" />ត្រឡប់ទៅបញ្ជី
+                </button>
+                <CreateAssignment onCreated={() => {
+                  setAssignmentView('list');
+                  loadAssignments();
+                  toast.success('បង្កើតកិច្ចការដោយជោគជ័យ!');
+                }} />
+              </>
+            )}
+
+            {/* View: Grade */}
+            {assignmentView === 'grade' && selectedAssignmentId && (
+              <>
+                <button className="btn btn-outline-secondary btn-sm mb-3"
+                  onClick={() => { setAssignmentView('list'); setSelectedAssignmentId(null); }}>
+                  <FaArrowLeft className="me-1" />ត្រឡប់ទៅបញ្ជី
+                </button>
+                <GradeSubmission assignmentId={selectedAssignmentId} />
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── Reports Tab ── */}
         {activeTab === 'reports' && (
           <div className="col-md-12">
             <div className="card shadow-sm">
@@ -294,7 +421,7 @@ const TeacherDashboard = () => {
         )}
       </div>
 
-      {/* Modal */}
+      {/* Question Modal */}
       {showQuestionModal && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog modal-lg">
@@ -305,22 +432,30 @@ const TeacherDashboard = () => {
               </div>
               <form onSubmit={handleQuestionSubmit}>
                 <div className="modal-body">
-                  <select className="form-select mb-2" value={questionForm.subjectId} onChange={e => setQuestionForm({ ...questionForm, subjectId: e.target.value })} required>
+                  <select className="form-select mb-2" value={questionForm.subjectId}
+                    onChange={e => setQuestionForm({ ...questionForm, subjectId: e.target.value })} required>
                     {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
-                  <textarea className="form-control mb-2" rows="2" placeholder="សំណួរ" value={questionForm.questionText} onChange={e => setQuestionForm({ ...questionForm, questionText: e.target.value })} required />
+                  <textarea className="form-control mb-2" rows="2" placeholder="សំណួរ"
+                    value={questionForm.questionText}
+                    onChange={e => setQuestionForm({ ...questionForm, questionText: e.target.value })} required />
                   {['a', 'b', 'c', 'd'].map(opt => (
                     <input key={opt} className="form-control mb-2" placeholder={`ជម្រើស ${opt.toUpperCase()}`}
                       value={questionForm[`option_${opt}`]}
                       onChange={e => setQuestionForm({ ...questionForm, [`option_${opt}`]: e.target.value })} required />
                   ))}
-                  <select className="form-select mb-2" value={questionForm.correctAnswer} onChange={e => setQuestionForm({ ...questionForm, correctAnswer: e.target.value })}>
-                    <option value="a">A</option><option value="b">B</option><option value="c">C</option><option value="d">D</option>
+                  <select className="form-select mb-2" value={questionForm.correctAnswer}
+                    onChange={e => setQuestionForm({ ...questionForm, correctAnswer: e.target.value })}>
+                    <option value="a">A</option><option value="b">B</option>
+                    <option value="c">C</option><option value="d">D</option>
                   </select>
-                  <input type="number" className="form-control mb-2" placeholder="ពិន្ទុ" value={questionForm.points} onChange={e => setQuestionForm({ ...questionForm, points: e.target.value })} />
+                  <input type="number" className="form-control mb-2" placeholder="ពិន្ទុ"
+                    value={questionForm.points}
+                    onChange={e => setQuestionForm({ ...questionForm, points: e.target.value })} />
                 </div>
                 <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowQuestionModal(false)}>បោះបង់</button>
+                  <button type="button" className="btn btn-secondary"
+                    onClick={() => setShowQuestionModal(false)}>បោះបង់</button>
                   <button type="submit" className="btn btn-primary">រក្សាទុក</button>
                 </div>
               </form>
