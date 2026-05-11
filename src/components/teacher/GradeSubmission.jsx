@@ -26,29 +26,37 @@ const GradeSubmission = ({ assignmentId }) => {
   };
 
   const handleGradeChange = (submissionId, field, value) => {
-    setGrading((prev) => ({
+    setGrading(prev => ({
       ...prev,
       [submissionId]: {
         ...prev[submissionId],
-        [field]: value,
-      },
+        [field]: value
+      }
     }));
   };
 
   const handleGradeSubmit = async (submissionId) => {
     const current = grading[submissionId] || {};
 
+    const existing = data.submissions.find(
+      s => s.id === submissionId
+    );
+
     const grade =
       current.grade !== undefined
         ? current.grade
-        : data.submissions.find((s) => s.id === submissionId)?.grade;
+        : existing?.grade;
 
     const feedback =
       current.feedback !== undefined
         ? current.feedback
-        : data.submissions.find((s) => s.id === submissionId)?.feedback;
+        : existing?.feedback;
 
-    if (grade === '' || grade === undefined || grade === null) {
+    if (
+      grade === '' ||
+      grade === undefined ||
+      grade === null
+    ) {
       return alert('សូមបញ្ចូលពិន្ទុ!');
     }
 
@@ -65,10 +73,14 @@ const GradeSubmission = ({ assignmentId }) => {
     } catch (error) {
       console.error(error);
 
-      alert(error.response?.data?.message || 'មានបញ្ហា!');
+      alert(
+        error.response?.data?.message ||
+        'មានបញ្ហាក្នុងការដាក់ពិន្ទុ!'
+      );
     }
   };
 
+  // Loading
   if (loading) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -77,6 +89,7 @@ const GradeSubmission = ({ assignmentId }) => {
     );
   }
 
+  // No data
   if (!data) {
     return (
       <div className="text-center py-8 text-red-500">
@@ -87,6 +100,7 @@ const GradeSubmission = ({ assignmentId }) => {
 
   return (
     <div className="bg-white rounded-xl shadow p-6">
+
       {/* Header */}
       <div className="mb-6 border-b pb-4">
         <h2 className="text-2xl font-bold text-gray-800">
@@ -108,16 +122,19 @@ const GradeSubmission = ({ assignmentId }) => {
         </div>
       ) : (
         <div className="space-y-5">
-          {data.submissions.map((sub) => (
+
+          {data.submissions.map(sub => (
             <div
               key={sub.id}
               className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition"
             >
+
               {/* Student Info */}
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+
                 <div>
                   <h3 className="font-semibold text-gray-800 text-lg">
-                    {sub.student?.name}
+                    {sub.student?.fullName}
                   </h3>
 
                   <p className="text-sm text-gray-500">
@@ -136,6 +153,7 @@ const GradeSubmission = ({ assignmentId }) => {
                     ? '✅ បានដាក់ពិន្ទុ'
                     : '⏳ រង់ចាំ'}
                 </span>
+
               </div>
 
               {/* File Link */}
@@ -152,6 +170,7 @@ const GradeSubmission = ({ assignmentId }) => {
 
               {/* Grade Form */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                 {/* Grade */}
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">
@@ -162,7 +181,7 @@ const GradeSubmission = ({ assignmentId }) => {
                     type="number"
                     min={0}
                     max={data.assignment.totalPoints}
-                    defaultValue={sub.grade || ''}
+                    defaultValue={sub.grade ?? ''}
                     onChange={(e) =>
                       handleGradeChange(
                         sub.id,
@@ -183,7 +202,7 @@ const GradeSubmission = ({ assignmentId }) => {
 
                   <input
                     type="text"
-                    defaultValue={sub.feedback || ''}
+                    defaultValue={sub.feedback ?? ''}
                     onChange={(e) =>
                       handleGradeChange(
                         sub.id,
@@ -195,6 +214,7 @@ const GradeSubmission = ({ assignmentId }) => {
                     placeholder="សរសេរមតិ..."
                   />
                 </div>
+
               </div>
 
               {/* Submit Button */}
@@ -206,10 +226,13 @@ const GradeSubmission = ({ assignmentId }) => {
                   💾 រក្សាទុកពិន្ទុ
                 </button>
               </div>
+
             </div>
           ))}
+
         </div>
       )}
+
     </div>
   );
 };

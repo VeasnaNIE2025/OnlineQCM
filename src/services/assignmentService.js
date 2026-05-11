@@ -9,8 +9,9 @@ const createAssignment = (data) =>
   api.post('/teacher/assignments', data);
 
 // ទាញកិច្ចការតាម Subject
-const getTeacherAssignments = (subjectId) => 
-  api.get(`/teacher/assignments/${subjectId}`);
+// ថ្មី ← កែត្រង់នេះ
+const getTeacherAssignments = () => 
+  api.get('/teacher/assignments');
 
 // មើល Submissions ទាំងអស់
 const getSubmissions = (assignmentId) => 
