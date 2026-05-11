@@ -39,22 +39,32 @@ const TeacherDashboard = () => {
 
   useEffect(() => { loadData(); }, []);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [subjectsData, statsData] = await Promise.all([
-        teacherService.getMySubjects(),
-        teacherService.getMyStats()
-      ]);
-      setSubjects(subjectsData);
-      setStats(statsData);
-      if (subjectsData.length > 0) setSelectedSubjectId(subjectsData[0].id);
-    } catch (error) {
-      toast.error('មិនអាចផ្ទុកទិន្នន័យបានទេ');
-    } finally {
-      setLoading(false);
-    }
-  };
+const loadData = async () => {
+  try {
+    setLoading(true);
+    const [subjectsRes, statsRes] = await Promise.all([
+      teacherService.getMySubjects(),   // ← return axios response
+      teacherService.getMyStats()       // ← return axios response
+    ]);
+
+    // ── ទាញ data ពី response ──────────────────────────
+    const subjectsData = subjectsRes.data?.subjects  // { subjects: [...] }
+                      || subjectsRes.data             // [...] array ផ្ទាល់
+                      || [];
+
+    const statsData    = statsRes.data?.stats
+                      || statsRes.data
+                      || { totalQuestions: 0, totalStudents: 0 };
+
+    setSubjects(subjectsData);
+    setStats(statsData);
+    if (subjectsData.length > 0) setSelectedSubjectId(subjectsData[0].id);
+  } catch (error) {
+    toast.error('មិនអាចផ្ទុកទិន្នន័យបានទេ');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const loadQuestions = useCallback(async () => {
     try {
