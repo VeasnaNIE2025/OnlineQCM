@@ -17,9 +17,17 @@ const getTeacherAssignments = () =>
 const getSubmissions = (assignmentId) => 
   api.get(`/teacher/submissions/${assignmentId}`);
 
+const updateAssignment = (id, data) =>
+  api.put(`/teacher/assignments/${id}`, data);
+
+const deleteAssignment = (id) =>
+  api.delete(`/teacher/assignments/${id}`);
+
 // ដាក់ពិន្ទុ + មតិកែលម្អ
 const gradeSubmission = (submissionId, grade, feedback) =>
   api.put(`/teacher/submissions/${submissionId}/grade`, { grade, feedback });
+
+
 
 // ════════════════════════════════════════════════
 // STUDENT
@@ -43,13 +51,13 @@ const getMySubmissions = () =>
   api.get('/student/my-submissions');
 
 export default {
-  // Teacher
   createAssignment,
   getTeacherAssignments,
   getSubmissions,
   gradeSubmission,
-  // Student
   getStudentAssignments,
   submitAssignment,
-  getMySubmissions
+  getMySubmissions,
+  updateAssignment,
+  deleteAssignment
 };

@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import api from '../../services/api';
 import teacherService from '../../services/teacherService';
 import CreateAssignment from '../../components/teacher/CreateAssignment';
+import EditAssignment from '../../components/teacher/EditAssignment';   // ← ថ្មី
 import GradeSubmission from '../../components/teacher/GradeSubmission';
 import assignmentService from '../../services/assignmentService';
 
@@ -16,17 +17,18 @@ const TeacherDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [subjects, setSubjects]         = useState([]);
-  const [stats, setStats]               = useState({ totalQuestions: 0, totalStudents: 0 });
-  const [questions, setQuestions]       = useState([]);
-  const [reports, setReports]           = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [activeTab, setActiveTab]       = useState('subjects');
+  const [subjects, setSubjects]       = useState([]);
+  const [stats, setStats]             = useState({ totalQuestions: 0, totalStudents: 0 });
+  const [questions, setQuestions]     = useState([]);
+  const [reports, setReports]         = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [activeTab, setActiveTab]     = useState('subjects');
 
   // Assignment states
-  const [assignments, setAssignments]         = useState([]);
+  const [assignments, setAssignments]                   = useState([]);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState(null);
-  const [assignmentView, setAssignmentView]   = useState('list'); // 'list' | 'create' | 'grade'
+  const [assignmentView, setAssignmentView]             = useState('list');
+  const [editingAssignment, setEditingAssignment]       = useState(null);  // ← ថ្មី
 
   const [showQuestionModal, setShowQuestionModal] = useState(false);
   const [editingQuestion, setEditingQuestion]     = useState(null);
@@ -40,28 +42,24 @@ const TeacherDashboard = () => {
 
   useEffect(() => { loadData(); }, []);
 
-const loadData = async () => {
-  try {
-    setLoading(true);
-
-    // ── ហៅ api ផ្ទាល់ — មិនពឹង teacherService ──────────
-    const [subjectsRes, statsRes] = await Promise.all([
-      api.get('/teacher/subjects'),   // ← api ផ្ទាល់
-      api.get('/teacher/stats')       // ← api ផ្ទាល់
-    ]);
-
-    const subjectsData = subjectsRes.data?.subjects || subjectsRes.data || [];
-    const statsData    = statsRes.data?.stats        || statsRes.data    || { totalQuestions: 0, totalStudents: 0 };
-
-    setSubjects(subjectsData);
-    setStats(statsData);
-    if (subjectsData.length > 0) setSelectedSubjectId(subjectsData[0].id);
-  } catch (error) {
-    toast.error('មិនអាចផ្ទុកទិន្នន័យបានទេ');
-  } finally {
-    setLoading(false);
-  }
-};
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [subjectsRes, statsRes] = await Promise.all([
+        api.get('/teacher/subjects'),
+        api.get('/teacher/stats')
+      ]);
+      const subjectsData = subjectsRes.data?.subjects || subjectsRes.data || [];
+      const statsData    = statsRes.data?.stats        || statsRes.data    || { totalQuestions: 0, totalStudents: 0 };
+      setSubjects(subjectsData);
+      setStats(statsData);
+      if (subjectsData.length > 0) setSelectedSubjectId(subjectsData[0].id);
+    } catch (error) {
+      toast.error('មិនអាចផ្ទុកទិន្នន័យបានទេ');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadQuestions = useCallback(async () => {
     try {
@@ -147,9 +145,20 @@ const loadData = async () => {
     }
   };
 
-  const formatDate = (date) => new Date(date).toLocaleString('km-KH');
+  // ── Delete Assignment ────────────────────────
+  const handleDeleteAssignment = async (id) => {
+    if (!window.confirm('តើពិតជាចង់លុបកិច្ចការនេះមែនទេ?')) return;
+    try {
+      await assignmentService.deleteAssignment(id);
+      toast.success('លុបដោយជោគជ័យ!');
+      loadAssignments();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'មានបញ្ហា!');
+    }
+  };
 
-  const isOverdue = (dueDate) => new Date() > new Date(dueDate);
+  const formatDate = (date) => new Date(date).toLocaleString('km-KH');
+  const isOverdue  = (dueDate) => new Date() > new Date(dueDate);
 
   if (loading) return (
     <div className="d-flex justify-content-center align-items-center vh-100">
@@ -179,17 +188,29 @@ const loadData = async () => {
         {/* Stats */}
         <div className="col-md-4 mb-4">
           <div className="card shadow-sm border-0 text-center">
-            <div className="card-body"><FaBook size={30} className="text-primary mb-2" /><h3>{subjects.length}</h3><p className="text-muted">មុខវិជ្ជា</p></div>
+            <div className="card-body">
+              <FaBook size={30} className="text-primary mb-2" />
+              <h3>{subjects.length}</h3>
+              <p className="text-muted">មុខវិជ្ជា</p>
+            </div>
           </div>
         </div>
         <div className="col-md-4 mb-4">
           <div className="card shadow-sm border-0 text-center">
-            <div className="card-body"><FaQuestionCircle size={30} className="text-success mb-2" /><h3>{stats.totalQuestions}</h3><p className="text-muted">សំណួរសរុប</p></div>
+            <div className="card-body">
+              <FaQuestionCircle size={30} className="text-success mb-2" />
+              <h3>{stats.totalQuestions}</h3>
+              <p className="text-muted">សំណួរសរុប</p>
+            </div>
           </div>
         </div>
         <div className="col-md-4 mb-4">
           <div className="card shadow-sm border-0 text-center">
-            <div className="card-body"><FaUsers size={30} className="text-info mb-2" /><h3>{stats.totalStudents}</h3><p className="text-muted">សិស្ស</p></div>
+            <div className="card-body">
+              <FaUsers size={30} className="text-info mb-2" />
+              <h3>{stats.totalStudents}</h3>
+              <p className="text-muted">សិស្ស</p>
+            </div>
           </div>
         </div>
 
@@ -208,7 +229,6 @@ const loadData = async () => {
                 <FaQuestionCircle className="me-2" />គ្រប់គ្រងសំណួរ
               </button>
             </li>
-            {/* ✅ Tab កិច្ចការ */}
             <li className="nav-item">
               <button className={`nav-link ${activeTab === 'assignments' ? 'active' : ''}`}
                 onClick={() => { setActiveTab('assignments'); setAssignmentView('list'); }}>
@@ -285,8 +305,10 @@ const loadData = async () => {
                         <td>{q.option_d.substring(0, 20)}</td>
                         <td>{q.correctAnswer.toUpperCase()}</td>
                         <td>
-                          <button className="btn btn-sm btn-outline-primary me-1" onClick={() => openEditModal(q)}><FaEdit /></button>
-                          <button className="btn btn-sm btn-outline-danger" onClick={() => handleDeleteQuestion(q.id)}><FaTrash /></button>
+                          <button className="btn btn-sm btn-outline-primary me-1"
+                            onClick={() => openEditModal(q)}><FaEdit /></button>
+                          <button className="btn btn-sm btn-outline-danger"
+                            onClick={() => handleDeleteQuestion(q.id)}><FaTrash /></button>
                         </td>
                       </tr>
                     ))}
@@ -330,29 +352,49 @@ const loadData = async () => {
                       <div className="col-md-6 mb-4" key={a.id}>
                         <div className="card shadow-sm h-100">
                           <div className="card-body">
+
                             <div className="d-flex justify-content-between align-items-start mb-2">
                               <h6 className="mb-0 fw-bold">{a.title}</h6>
                               <span className={`badge ${isOverdue(a.dueDate) ? 'bg-danger' : 'bg-success'}`}>
                                 {isOverdue(a.dueDate) ? 'ផុតកំណត់' : 'បើក'}
                               </span>
                             </div>
-                            <p className="text-muted small mb-2">{a.Subject?.name || a.subjectName}</p>
+
+                            <p className="text-muted small mb-1">{a.Subject?.name}</p>
+                            <p className="text-muted small mb-2">
+                              🏫 {a.Class?.name || 'គ្មានថ្នាក់'}
+                            </p>
                             {a.description && (
                               <p className="small mb-2">{a.description}</p>
                             )}
+
                             <div className="d-flex gap-3 text-muted small mb-3">
                               <span>📅 {new Date(a.dueDate).toLocaleString('km-KH')}</span>
                               <span>⭐ {a.totalPoints} ពិន្ទុ</span>
-                              <span>📄 {a.submissionCount || 0} ស្នាដៃ</span>
+                              <span>📄 {a.Submissions?.length || 0} ស្នាដៃ</span>
                             </div>
-                            <button
-                              className="btn btn-outline-primary btn-sm w-100"
-                              onClick={() => {
-                                setSelectedAssignmentId(a.id);
-                                setAssignmentView('grade');
-                              }}>
-                              👁 មើល/ដាក់ពិន្ទុស្នាដៃ
-                            </button>
+
+                            <div className="d-flex gap-2">
+                              <button className="btn btn-outline-primary btn-sm flex-grow-1"
+                                onClick={() => {
+                                  setSelectedAssignmentId(a.id);
+                                  setAssignmentView('grade');
+                                }}>
+                                👁 មើល/ដាក់ពិន្ទុ
+                              </button>
+                              <button className="btn btn-outline-warning btn-sm"
+                                onClick={() => {
+                                  setEditingAssignment(a);
+                                  setAssignmentView('edit');
+                                }}>
+                                <FaEdit />
+                              </button>
+                              <button className="btn btn-outline-danger btn-sm"
+                                onClick={() => handleDeleteAssignment(a.id)}>
+                                <FaTrash />
+                              </button>
+                            </div>
+
                           </div>
                         </div>
                       </div>
@@ -377,6 +419,25 @@ const loadData = async () => {
               </>
             )}
 
+            {/* View: Edit */}
+            {assignmentView === 'edit' && editingAssignment && (
+              <>
+                <button className="btn btn-outline-secondary btn-sm mb-3"
+                  onClick={() => { setAssignmentView('list'); setEditingAssignment(null); }}>
+                  <FaArrowLeft className="me-1" />ត្រឡប់ទៅបញ្ជី
+                </button>
+                <EditAssignment
+                  assignment={editingAssignment}
+                  onUpdated={() => {
+                    setAssignmentView('list');
+                    setEditingAssignment(null);
+                    loadAssignments();
+                    toast.success('កែប្រែដោយជោគជ័យ!');
+                  }}
+                />
+              </>
+            )}
+
             {/* View: Grade */}
             {assignmentView === 'grade' && selectedAssignmentId && (
               <>
@@ -387,6 +448,7 @@ const loadData = async () => {
                 <GradeSubmission assignmentId={selectedAssignmentId} />
               </>
             )}
+
           </div>
         )}
 
@@ -398,7 +460,10 @@ const loadData = async () => {
                 <div className="table-responsive">
                   <table className="table table-hover mb-0">
                     <thead className="table-light">
-                      <tr><th>សិស្ស</th><th>អ៊ីមែល</th><th>ការប្រឡង</th><th>មុខវិជ្ជា</th><th>ពិន្ទុ</th><th>ភាគរយ</th><th>ថ្ងៃប្រឡង</th></tr>
+                      <tr>
+                        <th>សិស្ស</th><th>អ៊ីមែល</th><th>ការប្រឡង</th>
+                        <th>មុខវិជ្ជា</th><th>ពិន្ទុ</th><th>ភាគរយ</th><th>ថ្ងៃប្រឡង</th>
+                      </tr>
                     </thead>
                     <tbody>
                       {reports.map(r => (
@@ -409,7 +474,11 @@ const loadData = async () => {
                           <td>{r.subjectName}</td>
                           <td>{r.totalScore} / {r.totalPoints}</td>
                           <td>
-                            <span className={`badge ${parseFloat(r.percentage || 0) >= 70 ? 'bg-success' : parseFloat(r.percentage || 0) >= 50 ? 'bg-warning' : 'bg-danger'}`}>
+                            <span className={`badge ${
+                              parseFloat(r.percentage || 0) >= 70 ? 'bg-success'
+                              : parseFloat(r.percentage || 0) >= 50 ? 'bg-warning'
+                              : 'bg-danger'
+                            }`}>
                               {parseFloat(r.percentage || 0).toFixed(1)}%
                             </span>
                           </td>
@@ -426,6 +495,7 @@ const loadData = async () => {
             </div>
           </div>
         )}
+
       </div>
 
       {/* Question Modal */}
@@ -447,7 +517,8 @@ const loadData = async () => {
                     value={questionForm.questionText}
                     onChange={e => setQuestionForm({ ...questionForm, questionText: e.target.value })} required />
                   {['a', 'b', 'c', 'd'].map(opt => (
-                    <input key={opt} className="form-control mb-2" placeholder={`ជម្រើស ${opt.toUpperCase()}`}
+                    <input key={opt} className="form-control mb-2"
+                      placeholder={`ជម្រើស ${opt.toUpperCase()}`}
                       value={questionForm[`option_${opt}`]}
                       onChange={e => setQuestionForm({ ...questionForm, [`option_${opt}`]: e.target.value })} required />
                   ))}
@@ -470,6 +541,7 @@ const loadData = async () => {
           </div>
         </div>
       )}
+
     </div>
   );
 };
