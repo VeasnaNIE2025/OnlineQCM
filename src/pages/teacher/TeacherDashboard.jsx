@@ -453,7 +453,7 @@ const TeacherDashboard = () => {
         )}
 
         {/* ── Reports Tab ── */}
-        {activeTab === 'reports' && (
+        {/* {activeTab === 'reports' && (
           <div className="col-md-12">
             <div className="card shadow-sm">
               <div className="card-body p-0">
@@ -494,10 +494,65 @@ const TeacherDashboard = () => {
               </div>
             </div>
           </div>
+        )} */}
+        {activeTab === 'reports' && (
+          <div className="col-md-12">
+            <div className="card shadow-sm">
+              <div className="card-body p-0">
+                <div className="table-responsive">
+                  <table className="table table-hover mb-0">
+                    <thead className="table-light">
+                      <tr>
+                        <th>សិស្ស</th>
+                        <th>អ៊ីមែល</th>
+                        <th>ថ្នាក់</th>       {/* ✅ បន្ថែម */}
+                        <th>ការប្រឡង</th>
+                        <th>មុខវិជ្ជា</th>
+                        <th>ពិន្ទុ</th>
+                        <th>ភាគរយ</th>
+                        <th>ថ្ងៃប្រឡង</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reports.map(r => (
+                        <tr key={r.id}>
+                          <td>{r.studentName}</td>
+                          <td>{r.studentEmail}</td>
+                          <td>                 {/* ✅ បន្ថែម */}
+                            <span className="badge bg-light text-dark border">
+                              {r.className || '—'}
+                            </span>
+                          </td>
+                          <td>{r.examTitle}</td>
+                          <td>{r.subjectName}</td>
+                          <td>{r.totalScore} / {r.totalPoints}</td>
+                          <td>
+                            <span className={`badge ${
+                              parseFloat(r.percentage || 0) >= 70 ? 'bg-success'
+                              : parseFloat(r.percentage || 0) >= 50 ? 'bg-warning'
+                              : 'bg-danger'
+                            }`}>
+                              {parseFloat(r.percentage || 0).toFixed(1)}%
+                            </span>
+                          </td>
+                          <td>{formatDate(r.submittedAt)}</td>
+                        </tr>
+                      ))}
+                      {reports.length === 0 && (
+                        <tr>
+                          <td colSpan="8" className="text-center py-3">
+                            មិនមានលទ្ធផលប្រឡង
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
-
       </div>
-
       {/* Question Modal */}
       {showQuestionModal && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
