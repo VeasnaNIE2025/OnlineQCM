@@ -242,7 +242,7 @@ const GradeSubmission = ({ assignmentId }) => {
         </div>
       )}
 
-      {/* File Viewer Modal */}
+     {/* File Viewer Modal */}
       {viewingUrl && (
         <div className="modal show d-block"
           style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
@@ -251,7 +251,7 @@ const GradeSubmission = ({ assignmentId }) => {
             style={{ maxWidth: '90vw' }}>
             <div className="modal-content border-0 shadow-lg">
 
-              {/* Modal Header */}
+              {/* ✅ Header — Preview + Download + Close */}
               <div className="modal-header border-0 pb-2"
                 style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}>
                 <div className="d-flex align-items-center gap-2 text-white">
@@ -259,45 +259,39 @@ const GradeSubmission = ({ assignmentId }) => {
                   <h6 className="modal-title mb-0 text-white fw-bold">{viewingName}</h6>
                 </div>
                 <div className="d-flex gap-2">
-                  <a href={viewingUrl} download={viewingName}
+                  {/* Preview — បើក Tab ថ្មី */}
+                  <a href={viewingUrl} target="_blank" rel="noreferrer"
                     className="btn btn-light btn-sm fw-medium">
+                    🔍 Preview
+                  </a>
+                  {/* Download */}
+                  <a href={viewingUrl} download={viewingName}
+                    className="btn btn-warning btn-sm fw-medium">
                     ⬇️ Download
                   </a>
+                  {/* Close */}
                   <button className="btn btn-light btn-sm"
                     onClick={() => setViewingUrl(null)}>✕</button>
                 </div>
               </div>
 
-              {/* Modal Body — Smart Viewer */}
+              {/* ✅ Body — បង្ហាញ content ប៉ុណ្ណោះ គ្មាន button ជាន់ */}
               <div className="modal-body p-0" style={{ height: '82vh', background: '#2d2d2d' }}>
                 {(() => {
                   const ext = viewingName.split('.').pop().toLowerCase();
 
-                  // ✅ PDF — open in new tab (Cloudinary CORS blocks iframe)
                   if (ext === 'pdf') {
                     return (
-                      <div className="d-flex flex-column align-items-center justify-content-center h-100 text-white gap-4">
+                      <div className="d-flex flex-column align-items-center justify-content-center h-100 text-white gap-3">
                         <div style={{ fontSize: '5rem' }}>📄</div>
                         <h5 className="fw-bold">{viewingName}</h5>
-                        <p className="text-white-50 text-center px-4">
-                          PDF មិនអាចបង្ហាញក្នុង iframe បានទេ<br/>
-                          សូមប្រើប៊ូតុងខាងក្រោម
+                        <p className="text-white-50 text-center px-4 mb-0">
+                          សូមប្រើប៊ូតុង <strong>Preview</strong> ឬ <strong>Download</strong> ខាងលើ
                         </p>
-                        <div className="d-flex gap-3">
-                          <a href={viewingUrl} target="_blank" rel="noreferrer"
-                            className="btn btn-primary btn-lg px-4">
-                            🔍 បើកក្នុង Tab ថ្មី
-                          </a>
-                          <a href={viewingUrl} download={viewingName}
-                            className="btn btn-outline-light btn-lg px-4">
-                            ⬇️ Download
-                          </a>
-                        </div>
                       </div>
                     );
                   }
 
-                  // ✅ Word / Excel — Microsoft Office Online
                   if (['doc', 'docx', 'xls', 'xlsx'].includes(ext)) {
                     return (
                       <iframe
@@ -310,18 +304,13 @@ const GradeSubmission = ({ assignmentId }) => {
                     );
                   }
 
-                  // ✅ Fallback
                   return (
                     <div className="d-flex flex-column align-items-center justify-content-center h-100 text-white">
                       <div style={{ fontSize: '4rem' }}>📄</div>
                       <h5 className="mt-3">{viewingName}</h5>
-                      <p className="text-white-50">មិនអាចបង្ហាញ preview បានទេ</p>
-                      <div className="d-flex gap-3 mt-2">
-                        <a href={viewingUrl} target="_blank" rel="noreferrer"
-                          className="btn btn-primary">🔍 បើកក្នុង Tab ថ្មី</a>
-                        <a href={viewingUrl} download={viewingName}
-                          className="btn btn-outline-light">⬇️ Download</a>
-                      </div>
+                      <p className="text-white-50">
+                        សូមប្រើប៊ូតុង <strong>Preview</strong> ឬ <strong>Download</strong> ខាងលើ
+                      </p>
                     </div>
                   );
                 })()}
@@ -331,7 +320,6 @@ const GradeSubmission = ({ assignmentId }) => {
           </div>
         </div>
       )}
-
     </div>
   );
 };
