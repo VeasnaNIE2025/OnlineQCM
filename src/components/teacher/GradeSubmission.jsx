@@ -273,16 +273,27 @@ const GradeSubmission = ({ assignmentId }) => {
                 {(() => {
                   const ext = viewingName.split('.').pop().toLowerCase();
 
-                  // ✅ PDF — browser native viewer
+                  // ✅ PDF — open in new tab (Cloudinary CORS blocks iframe)
                   if (ext === 'pdf') {
                     return (
-                      <iframe
-                        src={viewingUrl}
-                        width="100%"
-                        height="100%"
-                        style={{ border: 'none' }}
-                        title={viewingName}
-                      />
+                      <div className="d-flex flex-column align-items-center justify-content-center h-100 text-white gap-4">
+                        <div style={{ fontSize: '5rem' }}>📄</div>
+                        <h5 className="fw-bold">{viewingName}</h5>
+                        <p className="text-white-50 text-center px-4">
+                          PDF មិនអាចបង្ហាញក្នុង iframe បានទេ<br/>
+                          សូមប្រើប៊ូតុងខាងក្រោម
+                        </p>
+                        <div className="d-flex gap-3">
+                          <a href={viewingUrl} target="_blank" rel="noreferrer"
+                            className="btn btn-primary btn-lg px-4">
+                            🔍 បើកក្នុង Tab ថ្មី
+                          </a>
+                          <a href={viewingUrl} download={viewingName}
+                            className="btn btn-outline-light btn-lg px-4">
+                            ⬇️ Download
+                          </a>
+                        </div>
+                      </div>
                     );
                   }
 
@@ -299,16 +310,18 @@ const GradeSubmission = ({ assignmentId }) => {
                     );
                   }
 
-                  // ✅ Fallback — download only
+                  // ✅ Fallback
                   return (
                     <div className="d-flex flex-column align-items-center justify-content-center h-100 text-white">
                       <div style={{ fontSize: '4rem' }}>📄</div>
                       <h5 className="mt-3">{viewingName}</h5>
                       <p className="text-white-50">មិនអាចបង្ហាញ preview បានទេ</p>
-                      <a href={viewingUrl} download={viewingName}
-                        className="btn btn-primary mt-2">
-                        ⬇️ Download ឯកសារ
-                      </a>
+                      <div className="d-flex gap-3 mt-2">
+                        <a href={viewingUrl} target="_blank" rel="noreferrer"
+                          className="btn btn-primary">🔍 បើកក្នុង Tab ថ្មី</a>
+                        <a href={viewingUrl} download={viewingName}
+                          className="btn btn-outline-light">⬇️ Download</a>
+                      </div>
                     </div>
                   );
                 })()}
