@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import assignmentService from '../../services/assignmentService';
 
 const GradeSubmission = ({ assignmentId }) => {
-  const [data, setData]       = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [grading, setGrading] = useState({});
-  const [saving, setSaving]   = useState(null);
+  const [data, setData]         = useState(null);
+  const [loading, setLoading]   = useState(true);
+  const [grading, setGrading]   = useState({});
+  const [saving, setSaving]     = useState(null);
+  const [viewingUrl, setViewingUrl] = useState(null);   // ← PDF Modal
+  const [viewingName, setViewingName] = useState('');
 
   useEffect(() => { fetchSubmissions(); }, [assignmentId]);
 
@@ -138,7 +140,7 @@ const GradeSubmission = ({ assignmentId }) => {
         </div>
       ) : (
         <div className="d-flex flex-column gap-3">
-          {data.submissions.map((sub, index) => {
+          {data.submissions.map(sub => {
             const isGraded = sub.status === 'graded';
             const colors   = isGraded ? getGradeColor(sub.grade, data.assignment.totalPoints) : null;
 
@@ -179,21 +181,25 @@ const GradeSubmission = ({ assignmentId }) => {
                         </div>
                       </div>
 
-                      {/* File */}
+                      {/* File Button → បើក Modal */}
                       <div className="mt-3">
-                        <a href={sub.fileUrl} target="_blank" rel="noreferrer"
-                          className="btn btn-outline-primary btn-sm w-100">
+                        <button
+                          className="btn btn-outline-primary btn-sm w-100"
+                          onClick={() => {
+                            setViewingUrl(sub.fileUrl);
+                            setViewingName(sub.fileName || 'ឯកសារ');
+                          }}>
                           📄 មើលឯកសារ
-                        </a>
+                        </button>
                       </div>
 
-                      {/* Grade Badge (if graded) */}
+                      {/* Grade Result */}
                       {isGraded && (
                         <div className={`mt-2 text-center fw-bold ${colors.text}`}>
                           {sub.grade} / {data.assignment.totalPoints} ពិន្ទុ
                           <div className="progress mt-1" style={{ height: '4px' }}>
                             <div className={`progress-bar ${colors.bar}`}
-                              style={{ width: `${(sub.grade/data.assignment.totalPoints)*100}%` }} />
+                              style={{ width: `${(sub.grade / data.assignment.totalPoints) * 100}%` }} />
                           </div>
                         </div>
                       )}
@@ -235,11 +241,7 @@ const GradeSubmission = ({ assignmentId }) => {
                           className={`btn w-100 fw-medium ${isGraded ? 'btn-outline-success' : 'btn-success'}`}>
                           {saving === sub.id ? (
                             <><span className="spinner-border spinner-border-sm me-2" />កំពុងរក្សាទុក...</>
-                          ) : isGraded ? (
-                            '✏️ កែប្រែពិន្ទុ'
-                          ) : (
-                            '💾 រក្សាទុកពិន្ទុ'
-                          )}
+                          ) : isGraded ? '✏️ កែប្រែពិន្ទុ' : '💾 រក្សាទុកពិន្ទុ'}
                         </button>
                       </div>
                     </div>
@@ -251,6 +253,56 @@ const GradeSubmission = ({ assignmentId }) => {
           })}
         </div>
       )}
+
+      {/* ══════════════════════════════════════════
+          PDF Viewer Modal
+      ══════════════════════════════════════════ */}
+      {viewingUrl && (
+        <div className="modal show d-block"
+          style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setViewingUrl(null); }}>
+          <div className="modal-dialog modal-xl modal-dialog-centered"
+            style={{ maxWidth: '90vw' }}>
+            <div className="modal-content border-0 shadow-lg">
+
+              {/* Modal Header */}
+              <div className="modal-header border-0 pb-2"
+                style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}>
+                <div className="d-flex align-items-center gap-2 text-white">
+                  <span style={{ fontSize: '1.2rem' }}>📄</span>
+                  <h6 className="modal-title mb-0 text-white fw-bold">
+                    {viewingName}
+                  </h6>
+                </div>
+                <div className="d-flex gap-2">
+                  <a href={viewingUrl} download={viewingName}
+                    className="btn btn-light btn-sm fw-medium">
+                    ⬇️ Download
+                  </a>
+                  <button className="btn btn-light btn-sm"
+                    onClick={() => setViewingUrl(null)}>
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body — PDF Viewer */}
+              <div className="modal-body p-0 bg-light"
+                style={{ height: '82vh' }}>
+                <iframe
+                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(viewingUrl)}&embedded=true`}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 'none' }}
+                  title={viewingName}
+                />
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
