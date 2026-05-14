@@ -6,7 +6,7 @@ const GradeSubmission = ({ assignmentId }) => {
   const [loading, setLoading]   = useState(true);
   const [grading, setGrading]   = useState({});
   const [saving, setSaving]     = useState(null);
-  const [viewingUrl, setViewingUrl] = useState(null);   // ← PDF Modal
+  const [viewingUrl, setViewingUrl]   = useState(null);
   const [viewingName, setViewingName] = useState('');
 
   useEffect(() => { fetchSubmissions(); }, [assignmentId]);
@@ -51,7 +51,6 @@ const GradeSubmission = ({ assignmentId }) => {
     }
   };
 
-  // ── Helpers ──────────────────────────────────
   const getGradeColor = (grade, total) => {
     const pct = (grade / total) * 100;
     if (pct >= 80) return { bar: 'bg-success', text: 'text-success' };
@@ -62,7 +61,6 @@ const GradeSubmission = ({ assignmentId }) => {
   const gradedCount = data?.submissions.filter(s => s.status === 'graded').length || 0;
   const totalCount  = data?.submissions.length || 0;
 
-  // ── Loading ───────────────────────────────────
   if (loading) return (
     <div className="d-flex justify-content-center align-items-center py-5">
       <div className="spinner-border text-primary me-3" />
@@ -70,13 +68,11 @@ const GradeSubmission = ({ assignmentId }) => {
     </div>
   );
 
-  if (!data) return (
-    <div className="alert alert-danger">រកមិនឃើញទិន្នន័យ!</div>
-  );
+  if (!data) return <div className="alert alert-danger">រកមិនឃើញទិន្នន័យ!</div>;
 
   return (
     <div>
-      {/* ── Header Card ── */}
+      {/* Header */}
       <div className="card border-0 shadow-sm mb-4"
         style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
         <div className="card-body p-4 text-white">
@@ -94,8 +90,6 @@ const GradeSubmission = ({ assignmentId }) => {
               </div>
             </div>
           </div>
-
-          {/* Progress */}
           <div className="mt-3">
             <div className="d-flex justify-content-between small mb-1">
               <span>ដំណើរការ</span>
@@ -109,7 +103,7 @@ const GradeSubmission = ({ assignmentId }) => {
         </div>
       </div>
 
-      {/* ── Stats Row ── */}
+      {/* Stats */}
       <div className="row g-3 mb-4">
         <div className="col-4">
           <div className="card border-0 shadow-sm text-center py-3">
@@ -131,7 +125,7 @@ const GradeSubmission = ({ assignmentId }) => {
         </div>
       </div>
 
-      {/* ── Empty ── */}
+      {/* Empty */}
       {data.submissions.length === 0 ? (
         <div className="card border-0 shadow-sm text-center py-5">
           <div style={{ fontSize: '3rem' }}>📭</div>
@@ -146,8 +140,6 @@ const GradeSubmission = ({ assignmentId }) => {
 
             return (
               <div key={sub.id} className="card border-0 shadow-sm overflow-hidden">
-
-                {/* Color Bar */}
                 <div style={{
                   height: '4px',
                   background: isGraded
@@ -158,11 +150,9 @@ const GradeSubmission = ({ assignmentId }) => {
                 <div className="card-body p-4">
                   <div className="row align-items-start g-3">
 
-                    {/* ── Left: Student Info ── */}
+                    {/* Left: Student Info */}
                     <div className="col-md-4">
                       <div className="d-flex align-items-center gap-3">
-
-                        {/* Avatar */}
                         <div className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white flex-shrink-0"
                           style={{
                             width: '48px', height: '48px', fontSize: '1.2rem',
@@ -170,7 +160,6 @@ const GradeSubmission = ({ assignmentId }) => {
                           }}>
                           {sub.student?.fullName?.charAt(0) || '?'}
                         </div>
-
                         <div>
                           <h6 className="mb-0 fw-bold">{sub.student?.fullName}</h6>
                           <p className="text-muted small mb-1">{sub.student?.email}</p>
@@ -181,7 +170,7 @@ const GradeSubmission = ({ assignmentId }) => {
                         </div>
                       </div>
 
-                      {/* File Button → បើក Modal */}
+                      {/* View File Button */}
                       <div className="mt-3">
                         <button
                           className="btn btn-outline-primary btn-sm w-100"
@@ -205,7 +194,7 @@ const GradeSubmission = ({ assignmentId }) => {
                       )}
                     </div>
 
-                    {/* ── Right: Grade Form ── */}
+                    {/* Right: Grade Form */}
                     <div className="col-md-8">
                       <div className="row g-3">
                         <div className="col-md-4">
@@ -233,7 +222,6 @@ const GradeSubmission = ({ assignmentId }) => {
                           />
                         </div>
                       </div>
-
                       <div className="mt-3">
                         <button
                           onClick={() => handleGradeSubmit(sub.id)}
@@ -254,13 +242,11 @@ const GradeSubmission = ({ assignmentId }) => {
         </div>
       )}
 
-      {/* ══════════════════════════════════════════
-          PDF Viewer Modal
-      ══════════════════════════════════════════ */}
+      {/* File Viewer Modal */}
       {viewingUrl && (
         <div className="modal show d-block"
           style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setViewingUrl(null); }}>
+          onClick={e => { if (e.target === e.currentTarget) setViewingUrl(null); }}>
           <div className="modal-dialog modal-xl modal-dialog-centered"
             style={{ maxWidth: '90vw' }}>
             <div className="modal-content border-0 shadow-lg">
@@ -270,9 +256,7 @@ const GradeSubmission = ({ assignmentId }) => {
                 style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}>
                 <div className="d-flex align-items-center gap-2 text-white">
                   <span style={{ fontSize: '1.2rem' }}>📄</span>
-                  <h6 className="modal-title mb-0 text-white fw-bold">
-                    {viewingName}
-                  </h6>
+                  <h6 className="modal-title mb-0 text-white fw-bold">{viewingName}</h6>
                 </div>
                 <div className="d-flex gap-2">
                   <a href={viewingUrl} download={viewingName}
@@ -280,22 +264,54 @@ const GradeSubmission = ({ assignmentId }) => {
                     ⬇️ Download
                   </a>
                   <button className="btn btn-light btn-sm"
-                    onClick={() => setViewingUrl(null)}>
-                    ✕
-                  </button>
+                    onClick={() => setViewingUrl(null)}>✕</button>
                 </div>
               </div>
 
-              {/* Modal Body — PDF Viewer */}
-              <div className="modal-body p-0 bg-light"
-                style={{ height: '82vh' }}>
-                <iframe
-                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(viewingUrl)}&embedded=true`}
-                  width="100%"
-                  height="100%"
-                  style={{ border: 'none' }}
-                  title={viewingName}
-                />
+              {/* Modal Body — Smart Viewer */}
+              <div className="modal-body p-0" style={{ height: '82vh', background: '#2d2d2d' }}>
+                {(() => {
+                  const ext = viewingName.split('.').pop().toLowerCase();
+
+                  // ✅ PDF — browser native viewer
+                  if (ext === 'pdf') {
+                    return (
+                      <iframe
+                        src={viewingUrl}
+                        width="100%"
+                        height="100%"
+                        style={{ border: 'none' }}
+                        title={viewingName}
+                      />
+                    );
+                  }
+
+                  // ✅ Word / Excel — Microsoft Office Online
+                  if (['doc', 'docx', 'xls', 'xlsx'].includes(ext)) {
+                    return (
+                      <iframe
+                        src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(viewingUrl)}`}
+                        width="100%"
+                        height="100%"
+                        style={{ border: 'none' }}
+                        title={viewingName}
+                      />
+                    );
+                  }
+
+                  // ✅ Fallback — download only
+                  return (
+                    <div className="d-flex flex-column align-items-center justify-content-center h-100 text-white">
+                      <div style={{ fontSize: '4rem' }}>📄</div>
+                      <h5 className="mt-3">{viewingName}</h5>
+                      <p className="text-white-50">មិនអាចបង្ហាញ preview បានទេ</p>
+                      <a href={viewingUrl} download={viewingName}
+                        className="btn btn-primary mt-2">
+                        ⬇️ Download ឯកសារ
+                      </a>
+                    </div>
+                  );
+                })()}
               </div>
 
             </div>
