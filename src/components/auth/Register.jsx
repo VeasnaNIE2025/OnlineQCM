@@ -282,7 +282,6 @@ const Register = () => {
             style={{
               background: '#0a4a38'
             }}
-            //disabled={loading}
             disable={true}
           >
 
