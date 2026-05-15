@@ -278,11 +278,12 @@ const Register = () => {
 
           <button
             type="submit"
-            className="w-100 rounded-3 text-white fw-semibold py-2 mt-2 border-0"
+            className="w-100 rounded-3 text-white fw-semibold py-2 mt-2 border-0 "
             style={{
               background: '#0a4a38'
             }}
-            disabled={loading}
+            //disabled={loading}
+            disable={true}
           >
 
             {loading
