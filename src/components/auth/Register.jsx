@@ -490,7 +490,7 @@ const Register = () => {
             type="submit"
             className="w-100 rounded-3 text-white fw-semibold py-2 mt-2 border-0"
             style={{ background: '#0a4a38' }}
-            disabled={loading}
+            disabled={true} // disabled={loading} ប្រសិនបើចង់ដំណើរការវិញ
           >
             {loading ? 'កំពុងចុះឈ្មោះ...' : 'ចុះឈ្មោះ'}
           </button>
