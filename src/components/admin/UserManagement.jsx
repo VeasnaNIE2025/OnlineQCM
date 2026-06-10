@@ -169,7 +169,7 @@ const UserManagement = () => {
     try {
       const result = await userService.importUsers(file);
       toast.success(result.message);
-      loadUsers(); // refresh list
+      loadUsers();
       if (result.details?.errors?.length) {
         console.warn('Import errors:', result.details.errors);
       }
@@ -177,7 +177,7 @@ const UserManagement = () => {
       toast.error(error.response?.data?.message || 'បរាជ័យក្នុងការ import');
     } finally {
       setImporting(false);
-      e.target.value = ''; // clear input
+      e.target.value = '';
     }
   };
 
@@ -224,6 +224,7 @@ const UserManagement = () => {
         </div>
       </div>
 
+      {/* Search bar */}
       <div className="card shadow-sm mb-4">
         <div className="card-body">
           <div className="input-group">
@@ -239,6 +240,7 @@ const UserManagement = () => {
         </div>
       </div>
 
+      {/* Users table */}
       <div className="card shadow-sm">
         <div className="card-body p-0">
           <div className="table-responsive">
@@ -262,7 +264,7 @@ const UserManagement = () => {
                       <FaUserGraduate size={50} className="mb-2" />
                       <p>មិនមានទិន្នន័យ</p>
                     </td>
-                  </td>
+                  </tr>
                 ) : (
                   filteredUsers.map((user, index) => (
                     <tr key={user.id}>
