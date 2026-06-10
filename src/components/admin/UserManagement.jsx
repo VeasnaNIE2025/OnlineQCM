@@ -1,33 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   FaEdit, FaTrash, FaPlus, FaSearch,
   FaUserGraduate, FaChalkboardTeacher, FaUserShield,
-  FaToggleOn, FaToggleOff
+  FaToggleOn, FaToggleOff, FaFileExcel, FaUpload
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import userService from '../../services/userService';
 import api from '../../services/api';
 
-import { FaFileExcel, FaUpload } from 'react-icons/fa';
-import userService from '../../services/userService';
-
-  const [importing, setImporting] = useState(false);
-  const fileInputRef = useRef(null);
-
-  const UserManagement = () => {
-  const [users, setUsers]     = useState([]);
+const UserManagement = () => {
+  const [users, setUsers] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm]   = useState('');
-  const [showModal, setShowModal]     = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
     username: '', email: '', password: '',
     fullName: '', role: 'student', classId: '', isActive: true
   });
 
-  useEffect(() => { loadUsers(); loadClasses(); }, []);
+  useEffect(() => {
+    loadUsers();
+    loadClasses();
+  }, []);
 
   const loadUsers = async () => {
     try {
@@ -49,13 +48,13 @@ import userService from '../../services/userService';
   };
 
   const getRoleIcon = (role) => {
-    if (role === 'admin')   return <FaUserShield className="text-danger me-1" />;
+    if (role === 'admin') return <FaUserShield className="text-danger me-1" />;
     if (role === 'teacher') return <FaChalkboardTeacher className="text-success me-1" />;
     return <FaUserGraduate className="text-primary me-1" />;
   };
 
   const getRoleText = (role) => {
-    if (role === 'admin')   return 'អ្នកគ្រប់គ្រង';
+    if (role === 'admin') return 'អ្នកគ្រប់គ្រង';
     if (role === 'teacher') return 'គ្រូបង្រៀន';
     return 'សិស្ស';
   };
@@ -65,11 +64,11 @@ import userService from '../../services/userService';
       setEditingUser(user);
       setFormData({
         username: user.username || '',
-        email:    user.email    || '',
+        email: user.email || '',
         password: '',
         fullName: user.fullName || '',
-        role:     user.role     || 'student',
-        classId:  user.classId  || '',
+        role: user.role || 'student',
+        classId: user.classId || '',
         isActive: user.isActive
       });
     } else {
@@ -79,7 +78,10 @@ import userService from '../../services/userService';
     setShowModal(true);
   };
 
-  const handleCloseModal = () => { setShowModal(false); setEditingUser(null); };
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingUser(null);
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -93,10 +95,12 @@ import userService from '../../services/userService';
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.username || !formData.email || !formData.fullName) {
-      toast.error('សូមបំពេញព័ត៌មានឲ្យបានពេញលេញ'); return;
+      toast.error('សូមបំពេញព័ត៌មានឲ្យបានពេញលេញ');
+      return;
     }
     if (!editingUser && !formData.password) {
-      toast.error('សូមបញ្ចូលពាក្យសម្ងាត់'); return;
+      toast.error('សូមបញ្ចូលពាក្យសម្ងាត់');
+      return;
     }
     try {
       const payload = { ...formData };
@@ -122,7 +126,9 @@ import userService from '../../services/userService';
       await userService.updateUser(user.id, { ...user, isActive: !user.isActive });
       toast.success(`បាន${user.isActive ? 'បិទ' : 'បើក'}គណនី ${user.fullName}`);
       loadUsers();
-    } catch { toast.error('មិនអាចប្តូរស្ថានភាពបានទេ'); }
+    } catch {
+      toast.error('មិនអាចប្តូរស្ថានភាពបានទេ');
+    }
   };
 
   const handleDelete = async (id, name) => {
@@ -131,7 +137,47 @@ import userService from '../../services/userService';
         await userService.deleteUser(id);
         toast.success('លុបអ្នកប្រើប្រាស់បានជោគជ័យ');
         loadUsers();
-      } catch { toast.error('មិនអាចលុបអ្នកប្រើប្រាស់បានទេ'); }
+      } catch {
+        toast.error('មិនអាចលុបអ្នកប្រើប្រាស់បានទេ');
+      }
+    }
+  };
+
+  // 📥 Export template
+  const handleDownloadTemplate = async () => {
+    try {
+      const data = await userService.downloadTemplate();
+      const url = window.URL.createObjectURL(new Blob([data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'user_import_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('ទាញយក template បានជោគជ័យ');
+    } catch {
+      toast.error('មិនអាចទាញយក template បានទេ');
+    }
+  };
+
+  // 📤 Import Excel
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const result = await userService.importUsers(file);
+      toast.success(result.message);
+      loadUsers(); // refresh list
+      if (result.details?.errors?.length) {
+        console.warn('Import errors:', result.details.errors);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'បរាជ័យក្នុងការ import');
+    } finally {
+      setImporting(false);
+      e.target.value = ''; // clear input
     }
   };
 
@@ -141,50 +187,14 @@ import userService from '../../services/userService';
     u.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Functions EXPORT pdf, excel, etc. will be added here later
-const handleDownloadTemplate = async () => {
-  try {
-    const data = await userService.downloadTemplate();
-    const url = window.URL.createObjectURL(new Blob([data]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'user_import_template.xlsx');
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-    toast.success('ទាញយក template បានជោគជ័យ');
-  } catch {
-    toast.error('មិនអាចទាញយក template បានទេ');
+  if (loading) {
+    return (
+      <div className="text-center py-5">
+        <div className="spinner-border text-primary" role="status" />
+        <p className="mt-2">កំពុងផ្ទុកទិន្នន័យ...</p>
+      </div>
+    );
   }
-};
-
-const handleFileChange = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  setImporting(true);
-  try {
-    const result = await userService.importUsers(file);
-    toast.success(result.message);
-    loadUsers(); // reload user list
-    if (result.details?.errors?.length) {
-      console.warn('Import errors:', result.details.errors);
-      // Optionally show more details
-    }
-  } catch (error) {
-    toast.error(error.response?.data?.message || 'បរាជ័យក្នុងការ import');
-  } finally {
-    setImporting(false);
-    e.target.value = '';
-  }
-};
-
-  if (loading) return (
-    <div className="text-center py-5">
-      <div className="spinner-border text-primary" role="status" />
-      <p className="mt-2">កំពុងផ្ទុកទិន្នន័យ...</p>
-    </div>
-  );
 
   return (
     <div className="fade-in">
@@ -193,9 +203,6 @@ const handleFileChange = async (e) => {
           <h3 className="mb-1">👥 គ្រប់គ្រងអ្នកប្រើប្រាស់</h3>
           <p className="text-muted">គ្រប់គ្រងសិស្ស គ្រូបង្រៀន និងអ្នកគ្រប់គ្រងប្រព័ន្ធ</p>
         </div>
-        <button className="btn btn-primary" onClick={() => handleOpenModal()}>
-          <FaPlus className="me-2" /> បន្ថែមអ្នកប្រើប្រាស់ថ្មី
-        </button>
         <div className="d-flex gap-2">
           <button className="btn btn-outline-success" onClick={handleDownloadTemplate}>
             <FaFileExcel className="me-2" /> ទាញយក Template
@@ -203,20 +210,31 @@ const handleFileChange = async (e) => {
           <button className="btn btn-outline-info" onClick={() => fileInputRef.current.click()}>
             <FaUpload className="me-2" /> Import Excel
           </button>
-          <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept=".xlsx, .xls" onChange={handleFileChange} />
+          <input
+            type="file"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            accept=".xlsx, .xls"
+            onChange={handleFileChange}
+            disabled={importing}
+          />
           <button className="btn btn-primary" onClick={() => handleOpenModal()}>
             <FaPlus className="me-2" /> បន្ថែមអ្នកប្រើប្រាស់ថ្មី
           </button>
-      </div>
+        </div>
       </div>
 
       <div className="card shadow-sm mb-4">
         <div className="card-body">
           <div className="input-group">
             <span className="input-group-text bg-white"><FaSearch className="text-muted" /></span>
-            <input type="text" className="form-control"
+            <input
+              type="text"
+              className="form-control"
               placeholder="ស្វែងរកតាមឈ្មោះ អ៊ីមែល ឬឈ្មោះអ្នកប្រើប្រាស់..."
-              value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
           </div>
         </div>
       </div>
@@ -241,63 +259,74 @@ const handleFileChange = async (e) => {
                 {filteredUsers.length === 0 ? (
                   <tr>
                     <td colSpan="8" className="text-center py-5 text-muted">
-                      <FaUserGraduate size={50} className="mb-2" /><p>មិនមានទិន្នន័យ</p>
+                      <FaUserGraduate size={50} className="mb-2" />
+                      <p>មិនមានទិន្នន័យ</p>
                     </td>
-                  </tr>
-                ) : filteredUsers.map((user, index) => (
-                  <tr key={user.id}>
-                    <td>{index + 1}</td>
-                    <td><strong>{user.fullName}</strong></td>
-                    <td>{user.username}</td>
-                    <td>{user.email}</td>
-                    <td>
-                      <span className="badge bg-light text-dark">
-                        {getRoleIcon(user.role)}{getRoleText(user.role)}
-                      </span>
-                    </td>
-                    <td>
-                      {user.role === 'student'
-                        ? <span className="badge bg-info text-dark">
+                  </td>
+                ) : (
+                  filteredUsers.map((user, index) => (
+                    <tr key={user.id}>
+                      <td>{index + 1}</td>
+                      <td><strong>{user.fullName}</strong></td>
+                      <td>{user.username}</td>
+                      <td>{user.email}</td>
+                      <td>
+                        <span className="badge bg-light text-dark">
+                          {getRoleIcon(user.role)} {getRoleText(user.role)}
+                        </span>
+                      </td>
+                      <td>
+                        {user.role === 'student' ? (
+                          <span className="badge bg-info text-dark">
                             {user.Class?.name || '—'}
                           </span>
-                        : <span className="text-muted small">—</span>
-                      }
-                    </td>
-                    <td>
-                      <span className={`badge ${user.isActive ? 'bg-success' : 'bg-secondary'}`}>
-                        {user.isActive ? 'សកម្ម' : 'បិទ'}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="btn-group">
-                        <button className="btn btn-sm btn-outline-primary"
-                          onClick={() => handleOpenModal(user)} title="កែប្រែ">
-                          <FaEdit />
-                        </button>
-                        <button className="btn btn-sm btn-outline-warning"
-                          onClick={() => handleToggleStatus(user)}
-                          title={user.isActive ? 'បិទ' : 'បើក'}>
-                          {user.isActive ? <FaToggleOff /> : <FaToggleOn />}
-                        </button>
-                        <button className="btn btn-sm btn-outline-danger"
-                          onClick={() => handleDelete(user.id, user.fullName)}
-                          disabled={user.role === 'admin'}
-                          title={user.role === 'admin' ? 'មិនអាចលុប Admin' : 'លុប'}>
-                          <FaTrash />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                        ) : (
+                          <span className="text-muted small">—</span>
+                        )}
+                      </td>
+                      <td>
+                        <span className={`badge ${user.isActive ? 'bg-success' : 'bg-secondary'}`}>
+                          {user.isActive ? 'សកម្ម' : 'បិទ'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="btn-group">
+                          <button
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={() => handleOpenModal(user)}
+                            title="កែប្រែ"
+                          >
+                            <FaEdit />
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline-warning"
+                            onClick={() => handleToggleStatus(user)}
+                            title={user.isActive ? 'បិទ' : 'បើក'}
+                          >
+                            {user.isActive ? <FaToggleOff /> : <FaToggleOn />}
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => handleDelete(user.id, user.fullName)}
+                            disabled={user.role === 'admin'}
+                            title={user.role === 'admin' ? 'មិនអាចលុប Admin' : 'លុប'}
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         </div>
       </div>
 
+      {/* Modal Form */}
       {showModal && (
-        <div className="modal show d-block" tabIndex="-1"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content">
               <div className="modal-header">
@@ -308,54 +337,36 @@ const handleFileChange = async (e) => {
               </div>
               <form onSubmit={handleSubmit}>
                 <div className="modal-body">
-
                   <div className="mb-3">
                     <label className="form-label">ឈ្មោះពេញ <span className="text-danger">*</span></label>
-                    <input type="text" className="form-control" name="fullName"
-                      value={formData.fullName} onChange={handleChange} required
-                      placeholder="បញ្ចូលឈ្មោះពេញ" />
+                    <input type="text" className="form-control" name="fullName" value={formData.fullName} onChange={handleChange} required placeholder="បញ្ចូលឈ្មោះពេញ" />
                   </div>
-
                   <div className="mb-3">
                     <label className="form-label">ឈ្មោះអ្នកប្រើប្រាស់ <span className="text-danger">*</span></label>
-                    <input type="text" className="form-control" name="username"
-                      value={formData.username} onChange={handleChange} required
-                      placeholder="ជ្រើសរើសឈ្មោះអ្នកប្រើប្រាស់" />
+                    <input type="text" className="form-control" name="username" value={formData.username} onChange={handleChange} required placeholder="ជ្រើសរើសឈ្មោះអ្នកប្រើប្រាស់" />
                   </div>
-
                   <div className="mb-3">
                     <label className="form-label">អ៊ីមែល <span className="text-danger">*</span></label>
-                    <input type="email" className="form-control" name="email"
-                      value={formData.email} onChange={handleChange} required
-                      placeholder="example@email.com" />
+                    <input type="email" className="form-control" name="email" value={formData.email} onChange={handleChange} required placeholder="example@email.com" />
                   </div>
-
                   <div className="mb-3">
                     <label className="form-label">
                       {editingUser ? 'ពាក្យសម្ងាត់ថ្មី (ទុកចាស់បើមិនចង់ប្តូរ)' : 'ពាក្យសម្ងាត់'}
                     </label>
-                    <input type="password" className="form-control" name="password"
-                      value={formData.password} onChange={handleChange}
-                      required={!editingUser}
-                      placeholder={editingUser ? 'បញ្ចូលពាក្យសម្ងាត់ថ្មី' : 'បញ្ចូលពាក្យសម្ងាត់'} />
+                    <input type="password" className="form-control" name="password" value={formData.password} onChange={handleChange} required={!editingUser} placeholder={editingUser ? 'បញ្ចូលពាក្យសម្ងាត់ថ្មី' : 'បញ្ចូលពាក្យសម្ងាត់'} />
                   </div>
-
                   <div className="mb-3">
                     <label className="form-label">តួនាទី</label>
-                    <select className="form-select" name="role"
-                      value={formData.role} onChange={handleChange}>
+                    <select className="form-select" name="role" value={formData.role} onChange={handleChange}>
                       <option value="student">សិស្ស</option>
                       <option value="teacher">គ្រូបង្រៀន</option>
                       <option value="admin">អ្នកគ្រប់គ្រង</option>
                     </select>
                   </div>
-
-                  {/* ✅ ថ្នាក់ — student only */}
                   {formData.role === 'student' && (
                     <div className="mb-3">
                       <label className="form-label">ថ្នាក់</label>
-                      <select className="form-select" name="classId"
-                        value={formData.classId} onChange={handleChange}>
+                      <select className="form-select" name="classId" value={formData.classId} onChange={handleChange}>
                         <option value="">— មិនទាន់ assign ថ្នាក់ —</option>
                         {classes.map(cls => (
                           <option key={cls.id} value={cls.id}>{cls.name}</option>
@@ -363,23 +374,14 @@ const handleFileChange = async (e) => {
                       </select>
                     </div>
                   )}
-
                   <div className="mb-3 form-check">
-                    <input type="checkbox" className="form-check-input"
-                      name="isActive" checked={formData.isActive} onChange={handleChange} />
-                    <label className="form-check-label">
-                      សកម្ម (អនុញ្ញាតឱ្យចូលប្រើប្រាស់)
-                    </label>
+                    <input type="checkbox" className="form-check-input" name="isActive" checked={formData.isActive} onChange={handleChange} />
+                    <label className="form-check-label">សកម្ម (អនុញ្ញាតឱ្យចូលប្រើប្រាស់)</label>
                   </div>
-
                 </div>
                 <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>
-                    បោះបង់
-                  </button>
-                  <button type="submit" className="btn btn-primary">
-                    {editingUser ? 'រក្សាទុក' : 'បង្កើត'}
-                  </button>
+                  <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>បោះបង់</button>
+                  <button type="submit" className="btn btn-primary">{editingUser ? 'រក្សាទុក' : 'បង្កើត'}</button>
                 </div>
               </form>
             </div>
