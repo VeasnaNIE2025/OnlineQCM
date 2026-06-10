@@ -8,7 +8,13 @@ import toast from 'react-hot-toast';
 import userService from '../../services/userService';
 import api from '../../services/api';
 
-const UserManagement = () => {
+import { FaFileExcel, FaUpload } from 'react-icons/fa';
+import userService from '../../services/userService';
+
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const UserManagement = () => {
   const [users, setUsers]     = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -135,6 +141,44 @@ const UserManagement = () => {
     u.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Functions EXPORT pdf, excel, etc. will be added here later
+const handleDownloadTemplate = async () => {
+  try {
+    const data = await userService.downloadTemplate();
+    const url = window.URL.createObjectURL(new Blob([data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'user_import_template.xlsx');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    toast.success('ទាញយក template បានជោគជ័យ');
+  } catch {
+    toast.error('មិនអាចទាញយក template បានទេ');
+  }
+};
+
+const handleFileChange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  setImporting(true);
+  try {
+    const result = await userService.importUsers(file);
+    toast.success(result.message);
+    loadUsers(); // reload user list
+    if (result.details?.errors?.length) {
+      console.warn('Import errors:', result.details.errors);
+      // Optionally show more details
+    }
+  } catch (error) {
+    toast.error(error.response?.data?.message || 'បរាជ័យក្នុងការ import');
+  } finally {
+    setImporting(false);
+    e.target.value = '';
+  }
+};
+
   if (loading) return (
     <div className="text-center py-5">
       <div className="spinner-border text-primary" role="status" />
@@ -152,6 +196,18 @@ const UserManagement = () => {
         <button className="btn btn-primary" onClick={() => handleOpenModal()}>
           <FaPlus className="me-2" /> បន្ថែមអ្នកប្រើប្រាស់ថ្មី
         </button>
+        <div className="d-flex gap-2">
+          <button className="btn btn-outline-success" onClick={handleDownloadTemplate}>
+            <FaFileExcel className="me-2" /> ទាញយក Template
+          </button>
+          <button className="btn btn-outline-info" onClick={() => fileInputRef.current.click()}>
+            <FaUpload className="me-2" /> Import Excel
+          </button>
+          <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept=".xlsx, .xls" onChange={handleFileChange} />
+          <button className="btn btn-primary" onClick={() => handleOpenModal()}>
+            <FaPlus className="me-2" /> បន្ថែមអ្នកប្រើប្រាស់ថ្មី
+          </button>
+      </div>
       </div>
 
       <div className="card shadow-sm mb-4">
