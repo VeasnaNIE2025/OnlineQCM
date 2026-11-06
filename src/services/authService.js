@@ -28,4 +28,27 @@ const getCurrentUser = () => {
   return userStr ? JSON.parse(userStr) : null;
 };
 
-export default { login, register, logout, getCurrentUser };
+const getRegistrationStatus = async () => {
+  const response = await api.get('/auth/registration-status');
+  return response.data;
+};
+
+const getAdminRegistrationSetting = async () => {
+  const response = await api.get('/admin/settings/registration');
+  return response.data;
+};
+
+const updateAdminRegistrationSetting = async (allowRegistration) => {
+  const response = await api.put('/admin/settings/registration', { allowRegistration });
+  return response.data;
+};
+
+export default {
+  login,
+  register,
+  logout,
+  getCurrentUser,
+  getRegistrationStatus,
+  getAdminRegistrationSetting,
+  updateAdminRegistrationSetting,
+};

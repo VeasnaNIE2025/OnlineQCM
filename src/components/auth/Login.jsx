@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import authService from '../../services/authService';
 import toast from 'react-hot-toast';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [allowRegistration, setAllowRegistration] = useState(true);
   const { login, user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -16,6 +18,15 @@ const Login = () => {
     logout();
     setEmail('');
     setPassword('');
+
+    // Fetch registration status
+    authService.getRegistrationStatus()
+      .then(data => {
+        if (data && typeof data.allowRegistration === 'boolean') {
+          setAllowRegistration(data.allowRegistration);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Redirect if already logged in
@@ -108,9 +119,17 @@ const Login = () => {
             </button>
           </form>
           
-          <p className="text-center mt-3">
-            មិនទាន់មានគណនី? <Link to="/register">ចុះឈ្មោះនៅទីនេះ</Link>
-          </p>
+          {allowRegistration ? (
+            <p className="text-center mt-3 mb-0">
+              មិនទាន់មានគណនី? <Link to="/register">ចុះឈ្មោះនៅទីនេះ</Link>
+            </p>
+          ) : (
+            <div className="text-center mt-3 mb-0 p-2 rounded bg-light border">
+              <small className="text-danger fw-semibold">
+                🔒 ការចុះឈ្មោះសិស្សថ្មីត្រូវបានបិទបណ្តោះអាសន្ន
+              </small>
+            </div>
+          )}
           <hr />
           <p className="text-center text-muted small mb-0">
             © 2026 ប្រព័ន្ធប្រឡង QCM. រក្សាសិទ្ធិគ្រប់យ៉ាង.

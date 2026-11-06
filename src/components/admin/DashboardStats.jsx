@@ -13,6 +13,8 @@ import {
 import reportService from '../../services/reportService';
 import examService from '../../services/examService';
 import subjectService from '../../services/subjectService';
+import authService from '../../services/authService';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
 
 ChartJS.register(
@@ -49,20 +51,23 @@ const DashboardStats = () => {
   const [subjects, setSubjects]             = useState([]);
   const [classStats, setClassStats]         = useState([]);
   const [loading, setLoading]               = useState(true);
+  const [allowRegistration, setAllowRegistration] = useState(true);
+  const [updatingRegistration, setUpdatingRegistration] = useState(false);
 
   useEffect(() => { loadDashboardData(); }, []);
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [statsData, examAnalyticsData, topStudentsData, activitiesData, subjectsData, classStatsData] =
+      const [statsData, examAnalyticsData, topStudentsData, activitiesData, subjectsData, classStatsData, regSetting] =
         await Promise.all([
           reportService.getStatistics(),
           reportService.getExamAnalytics(),
           reportService.getTopStudents(5),
           reportService.getRecentActivities(),
           subjectService.getSubjects(),
-          api.get('/admin/reports/class-statistics').then(r => r.data)
+          api.get('/admin/reports/class-statistics').then(r => r.data),
+          authService.getAdminRegistrationSetting().catch(() => ({ allowRegistration: true }))
         ]);
       setStatistics(statsData);
       setExamAnalytics(examAnalyticsData);
@@ -70,10 +75,27 @@ const DashboardStats = () => {
       setRecentActivities(activitiesData);
       setSubjects(subjectsData);
       setClassStats(classStatsData);
+      if (regSetting && typeof regSetting.allowRegistration === 'boolean') {
+        setAllowRegistration(regSetting.allowRegistration);
+      }
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleRegistration = async () => {
+    try {
+      setUpdatingRegistration(true);
+      const nextState = !allowRegistration;
+      const res = await authService.updateAdminRegistrationSetting(nextState);
+      setAllowRegistration(nextState);
+      toast.success(res.message || (nextState ? 'បានបើកការចុះឈ្មោះ' : 'បានបិទការចុះឈ្មោះ'));
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'បរាជ័យក្នុងការផ្លាស់ប្តូរការកំណត់');
+    } finally {
+      setUpdatingRegistration(false);
     }
   };
 
@@ -209,6 +231,68 @@ const DashboardStats = () => {
 
   return (
     <div className="fade-in">
+
+      {/* ── Registration Control Setting ── */}
+      <div
+        className="card shadow-sm border-0 mb-4 rounded-3"
+        style={{
+          background: allowRegistration ? '#f0fdf4' : '#fef2f2',
+          borderLeft: `5px solid ${allowRegistration ? '#16a34a' : '#dc2626'}`
+        }}
+      >
+        <div className="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div className="d-flex align-items-center gap-3">
+            <div
+              className="rounded-circle text-white d-flex align-items-center justify-content-center shadow-sm"
+              style={{
+                width: 44,
+                height: 44,
+                background: allowRegistration ? '#16a34a' : '#dc2626',
+                fontSize: 20
+              }}
+            >
+              {allowRegistration ? '🔓' : '🔒'}
+            </div>
+            <div>
+              <div
+                className="fw-bold fs-6 mb-1"
+                style={{ color: allowRegistration ? '#166534' : '#991b1b' }}
+              >
+                ការកំណត់ចុះឈ្មោះសិស្សថ្មី (Student Registration)
+              </div>
+              <div className="text-muted small">
+                ស្ថានភាពបច្ចុប្បន្ន៖{' '}
+                <span className={`badge ${allowRegistration ? 'bg-success' : 'bg-danger'} px-2 py-1`}>
+                  {allowRegistration ? 'កំពុងបើកឱ្យចុះឈ្មោះ (Open)' : 'បានបិទការចុះឈ្មោះ (Closed)'}
+                </span>
+                <span className="ms-2">
+                  {allowRegistration
+                    ? '— សិស្សអាចចុះឈ្មោះបង្កើតគណនីថ្មីបានធម្មតា'
+                    : '— ប៊ូតុងចុះឈ្មោះលើ Frontend ត្រូវបាន Disable មិនឱ្យចុះបាន'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <button
+              className={`btn btn-sm px-4 py-2 fw-semibold rounded-3 shadow-sm ${
+                allowRegistration ? 'btn-outline-danger' : 'btn-success text-white'
+              }`}
+              onClick={handleToggleRegistration}
+              disabled={updatingRegistration}
+            >
+              {updatingRegistration ? (
+                'កំពុងដំណើរការ...'
+              ) : allowRegistration ? (
+                '🔒 បិទការចុះឈ្មោះ'
+              ) : (
+                '🔓 បើកការចុះឈ្មោះឡើងវិញ'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* ── Summary Cards ── */}
       <div className="row g-4 mb-4">

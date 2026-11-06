@@ -320,6 +320,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import authService from '../../services/authService';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 
@@ -335,11 +336,21 @@ const Register = () => {
   const [classes, setClasses]           = useState([]);
   const [loadingClasses, setLoadingClasses] = useState(false);
   const [loading, setLoading]           = useState(false);
+  const [allowRegistration, setAllowRegistration] = useState(true);
 
   const { register } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
+    // ពិនិត្យស្ថានភាពចុះឈ្មោះ
+    authService.getRegistrationStatus()
+      .then(res => {
+        if (res && typeof res.allowRegistration === 'boolean') {
+          setAllowRegistration(res.allowRegistration);
+        }
+      })
+      .catch(() => {});
+
     const fetchClasses = async () => {
       setLoadingClasses(true);
       try {
@@ -360,6 +371,11 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!allowRegistration) {
+      toast.error('ការចុះឈ្មោះត្រូវបានបិទបណ្តោះអាសន្នដោយអ្នកគ្រប់គ្រង');
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       toast.error('ពាក្យសម្ងាត់មិនត្រូវគ្នា');
@@ -400,13 +416,20 @@ const Register = () => {
         <div className="text-center mb-4">
           <div
             className="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-4 text-white"
-            style={{ width: '70px', height: '70px', background: '#0a4a38', fontSize: '30px' }}
+            style={{ width: '70px', height: '70px', background: allowRegistration ? '#0a4a38' : '#6c757d', fontSize: '30px' }}
           >
-            📋
+            {allowRegistration ? '📋' : '🔒'}
           </div>
           <h2 className="fw-bold mb-2">បង្កើតគណនីថ្មី</h2>
           <p className="text-muted small mb-0">ចុះឈ្មោះជាសិស្សថ្មីនៃប្រព័ន្ធ</p>
         </div>
+
+        {/* Closed Registration Warning Banner */}
+        {!allowRegistration && (
+          <div className="alert alert-warning border-0 rounded-3 text-center mb-3 py-2 px-3 small fw-semibold">
+            ⚠️ ការចុះឈ្មោះត្រូវបានបិទបណ្តោះអាសន្នដោយអ្នកគ្រប់គ្រង។
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} autoComplete="off">
@@ -421,6 +444,7 @@ const Register = () => {
               placeholder="បញ្ចូលឈ្មោះពេញ"
               value={formData.fullName}
               onChange={handleChange}
+              disabled={!allowRegistration || loading}
               required
             />
           </div>
@@ -435,6 +459,7 @@ const Register = () => {
               placeholder="example@email.com"
               value={formData.email}
               onChange={handleChange}
+              disabled={!allowRegistration || loading}
               required
             />
           </div>
@@ -447,7 +472,7 @@ const Register = () => {
               name="classId"
               value={formData.classId}
               onChange={handleChange}
-              disabled={loadingClasses}
+              disabled={!allowRegistration || loadingClasses || loading}
               required
             >
               <option value="">-- ជ្រើសរើសថ្នាក់ --</option>
@@ -469,6 +494,7 @@ const Register = () => {
                 placeholder="ពាក្យសម្ងាត់"
                 value={formData.password}
                 onChange={handleChange}
+                disabled={!allowRegistration || loading}
                 required
               />
             </div>
@@ -481,6 +507,7 @@ const Register = () => {
                 placeholder="បញ្ជាក់"
                 value={formData.confirmPassword}
                 onChange={handleChange}
+                disabled={!allowRegistration || loading}
                 required
               />
             </div>
@@ -489,10 +516,13 @@ const Register = () => {
           <button
             type="submit"
             className="w-100 rounded-3 text-white fw-semibold py-2 mt-2 border-0"
-            style={{ background: '#0a4a38' }}
-            disabled={true} // disabled={loading} ប្រសិនបើចង់ដំណើរការវិញ
+            style={{
+              background: allowRegistration ? '#0a4a38' : '#6c757d',
+              cursor: allowRegistration ? 'pointer' : 'not-allowed'
+            }}
+            disabled={loading || !allowRegistration}
           >
-            {loading ? 'កំពុងចុះឈ្មោះ...' : 'ចុះឈ្មោះ'}
+            {loading ? 'កំពុងចុះឈ្មោះ...' : allowRegistration ? 'ចុះឈ្មោះ' : 'ការចុះឈ្មោះត្រូវបានបិទ'}
           </button>
 
         </form>
